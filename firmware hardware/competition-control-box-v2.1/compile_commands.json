@@ -1,0 +1,230 @@
+[
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\CDC.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\CDC.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\CDC.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\CDC.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial0.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial0.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial0.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial0.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial1.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial1.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial1.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial1.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial2.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial2.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial2.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial2.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial3.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial3.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\HardwareSerial3.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\HardwareSerial3.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\IPAddress.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\IPAddress.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\IPAddress.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\IPAddress.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\PluggableUSB.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\PluggableUSB.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\PluggableUSB.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\PluggableUSB.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\Print.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Print.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Print.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\Print.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\Stream.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Stream.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Stream.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\Stream.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\Tone.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Tone.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\Tone.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\Tone.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\USBCore.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\USBCore.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\USBCore.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\USBCore.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\WInterrupts.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WInterrupts.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WInterrupts.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\WInterrupts.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\WMath.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WMath.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WMath.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\WMath.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\WString.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WString.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\WString.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\WString.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\abi.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\abi.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\abi.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\abi.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\hooks.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\hooks.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\hooks.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\hooks.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\main.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\main.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\main.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\main.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\FrameworkArduino\\new.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\new.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\new.cpp",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\new.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\wiring.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\wiring_analog.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_analog.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_analog.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring_analog.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\wiring_digital.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_digital.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_digital.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring_digital.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -mmcu=atmega32u4 -x assembler-with-cpp -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo -c -o .pio\\build\\leonardo\\FrameworkArduino\\wiring_pulse.S.o C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_pulse.S",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_pulse.S",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring_pulse.S.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\wiring_pulse.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_pulse.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_pulse.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring_pulse.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-gcc.exe -o .pio\\build\\leonardo\\FrameworkArduino\\wiring_shift.c.o -c -std=gnu11 -fno-fat-lto-objects -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_shift.c",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino\\wiring_shift.c",
+        "output": ".pio\\build\\leonardo\\FrameworkArduino\\wiring_shift.c.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\libfc5\\HID\\HID.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src\\HID.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "C:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src\\HID.cpp",
+        "output": ".pio\\build\\leonardo\\libfc5\\HID\\HID.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\CalibrationUtils.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo CalibrationUtils.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "CalibrationUtils.cpp",
+        "output": ".pio\\build\\leonardo\\src\\CalibrationUtils.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\CommandParser.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo CommandParser.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "CommandParser.cpp",
+        "output": ".pio\\build\\leonardo\\src\\CommandParser.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\Globals.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo Globals.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "Globals.cpp",
+        "output": ".pio\\build\\leonardo\\src\\Globals.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\HardwareAbstraction.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo HardwareAbstraction.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "HardwareAbstraction.cpp",
+        "output": ".pio\\build\\leonardo\\src\\HardwareAbstraction.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\MinCalibration.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo MinCalibration.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "MinCalibration.cpp",
+        "output": ".pio\\build\\leonardo\\src\\MinCalibration.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\MiscUtils.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo MiscUtils.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "MiscUtils.cpp",
+        "output": ".pio\\build\\leonardo\\src\\MiscUtils.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\MotorControl.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo MotorControl.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "MotorControl.cpp",
+        "output": ".pio\\build\\leonardo\\src\\MotorControl.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\competition-control-box-v1.8.ino.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo competition-control-box-v1.8.ino.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "competition-control-box-v1.8.ino.cpp",
+        "output": ".pio\\build\\leonardo\\src\\competition-control-box-v1.8.ino.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\src\\ButtonControl.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo src\\ButtonControl.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "src\\ButtonControl.cpp",
+        "output": ".pio\\build\\leonardo\\src\\src\\ButtonControl.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\src\\DynamicHID\\DynamicHID.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo src\\DynamicHID\\DynamicHID.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "src\\DynamicHID\\DynamicHID.cpp",
+        "output": ".pio\\build\\leonardo\\src\\src\\DynamicHID\\DynamicHID.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\src\\Joystick.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo src\\Joystick.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "src\\Joystick.cpp",
+        "output": ".pio\\build\\leonardo\\src\\src\\Joystick.cpp.o"
+    },
+    {
+        "command": "C:\\Users\\aurel\\.platformio\\packages\\toolchain-atmelavr\\bin\\avr-g++.exe -o .pio\\build\\leonardo\\src\\src\\PololuLedStrip.cpp.o -c -fno-exceptions -fno-threadsafe-statics -fpermissive -std=gnu++11 -mmcu=atmega32u4 -Os -Wall -ffunction-sections -fdata-sections -flto -DPLATFORMIO=60119 -DARDUINO_AVR_LEONARDO -DF_CPU=16000000L -DARDUINO_ARCH_AVR -DARDUINO=10808 -DUSB_VID=0x2341 -DUSB_PID=0x8036 \"-DUSB_PRODUCT=\\\"Arduino Leonardo\\\"\" -DUSB_MANUFACTURER=\\\"Arduino\\\" -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\HID\\src -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\libraries\\EEPROM\\src -I. -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\cores\\arduino -IC:\\Users\\aurel\\.platformio\\packages\\framework-arduino-avr\\variants\\leonardo src\\PololuLedStrip.cpp",
+        "directory": "C:\\Users\\aurel\\Mon Drive\\Commun\\Arduino\\Motion Center\\V0.9\\code source arduino\\competition-control-box-v1.8",
+        "file": "src\\PololuLedStrip.cpp",
+        "output": ".pio\\build\\leonardo\\src\\src\\PololuLedStrip.cpp.o"
+    }
+]

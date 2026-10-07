@@ -1,0 +1,1149 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "usb_device.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include <stdbool.h>
+#include <string.h>
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_cdc.h"
+#include "usbd_cdc_if.h"
+#include <stdio.h>          /* snprintf */
+#include "Actuator.h"       /* ax[], axCfg[], boxCfg, axStep, axMicros */
+#include "Homing.h"         /* homing MIN + calibration M5/M6 */
+#include "Nvm.h"            /* persistance flash (max/margin/homing sps) */
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+#define NUM_MOTORS      6   /* M1-M4 servos + M5/M6 optionnels (endstops) */
+_Static_assert(NUM_MOTORS <= MAX_ACTUATORS,
+               "ax[] trop petit : augmentez MAX_ACTUATORS (build flag).");
+#define SERVO_SETTLE_MS 200u
+#define STASH_SIZE      256u
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+/* hUsbDeviceFS est défini dans USB_DEVICE/App/usb_device.c */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+/* USB receive stash – filled by CDC_Receive_FS callback */
+uint8_t  s_stash[STASH_SIZE];
+volatile uint16_t s_len;
+
+/* Motor state — porté par le modèle partagé ax[] (Actuator.h).
+   ax[i].target = consigne SimHub (0-32767) ; ax[i].pos = position pas. */
+
+/* System flags */
+bool     simhubConnected;
+volatile bool     servoEnabled;
+volatile uint32_t servoMotionAllowedAt;
+static bool s_pendingDisable = false;  /* true = SC reçu, attente retour à 0 avant disable */
+static uint16_t s_lastStepUs[NUM_MOTORS] = {0};
+static int8_t   s_dirV[NUM_MOTORS]       = {0, 0, 0, 0, 0, 0};
+
+/* Requis par Homing.c (sur l'AVR : Globals.cpp). */
+bool hostConnected = false;
+
+/* Gel des axes M1-M4 pendant le homing M5/M6, maintenu jusqu'a la
+   premiere frame P valide apres la fin du homing (regle AVR). */
+static bool s_holdBaseAxes      = false;
+static bool s_pFrameApplied     = false;
+
+/* Reponse differee des commandes de calibration (contrat OK/ERR AVR :
+   la reponse part a la FIN de l'operation, pas au lancement). */
+typedef enum { CALOP_NONE = 0, CALOP_DETECT_MIN, CALOP_CALIB } CalOp;
+static CalOp   s_calOp     = CALOP_NONE;
+static uint8_t s_calMask   = 0;          /* bits = idx ax[] concernes */
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+/* USER CODE BEGIN PFP */
+static void MX_TIM2_Init(void);
+static void delay_us(uint16_t us);
+static void stepDirServiceFastV2(void);
+static void cdc_send_str(const char *s);
+static void handleTextCommand(const char *line);
+static void sendStatusLine(void);
+static void enterDFU(void);
+static void actuatorConfigInit(void);
+static void serviceCalibReply(void);
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* ---------- Stash helpers (called from main loop only) -------------------- */
+static inline void stash_consume(uint16_t n)
+{
+  __disable_irq();
+  if (n >= s_len) { s_len = 0; }
+  else { memmove(s_stash, s_stash + n, s_len - n); s_len -= n; }
+  __enable_irq();
+}
+
+static inline uint16_t be16(const uint8_t *p)
+{
+  return (uint16_t)((p[0] << 8) | p[1]);
+}
+
+/* ---------- GPIO pin masks for STEP (GPIOA) and DIR (GPIOB) outputs -------*/
+/*  Motor index : 0..3 (S1-S4/D1-D4 servos) ; 4..5 (S5-S6/D5-D6 steppers M5/M6) */
+static const uint16_t STEP_PIN[NUM_MOTORS] = { S1_Pin, S2_Pin, S3_Pin, S4_Pin, S5_Pin, S6_Pin };
+static const uint16_t DIR_PIN [NUM_MOTORS] = { D1_Pin, D2_Pin, D3_Pin, D4_Pin, D5_Pin, D6_Pin };
+
+/* -------------------------------------------------------------------------- */
+void enableServo(){
+  HAL_GPIO_WritePin(ENABLE_RELAY_GPIO_Port, ENABLE_RELAY_Pin, GPIO_PIN_SET);   /* PB12 HIGH – engage relay        */
+  HAL_Delay(2000);                                                              /* attendre 1s que le relais soit stable */
+  HAL_GPIO_WritePin(ENABLE_SERVO_GPIO_Port, ENABLE_SERVO_Pin, GPIO_PIN_RESET); /* PB14 LOW  – enable servo drives */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);                     /* PB11 HIGH – LED on              */
+  servoEnabled = true;
+  servoMotionAllowedAt = HAL_GetTick() + SERVO_SETTLE_MS;
+}
+
+void disableServo(){
+  HAL_GPIO_WritePin(ENABLE_RELAY_GPIO_Port, ENABLE_RELAY_Pin, GPIO_PIN_RESET); /* PB12 LOW  – release relay       */
+  HAL_GPIO_WritePin(ENABLE_SERVO_GPIO_Port, ENABLE_SERVO_Pin, GPIO_PIN_SET);   /* PB14 HIGH – disable servo drives */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);                   /* PB11 LOW  – LED off             */
+  servoEnabled = false;
+  servoMotionAllowedAt = 0;
+  /* Reset tracking so next session starts from a clean 0 reference.
+     The physical motor is wherever it stopped – that becomes the new step 0. */
+  for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+    ax[i].pos = 0U;
+    ax[i].target   = 0U;
+  }
+}
+
+/* ==========================================================================
+ *  Endstops M5/M6 + hooks plateforme requis par Homing.c
+ *  (memes signatures que HardwareAbstraction AVR)
+ * ========================================================================== */
+
+/* Lecture brute : switch actif bas (vers GND, pull-up materielle). */
+static bool hwReadEndstop(uint8_t motor)
+{
+  if (motor == 5U) return HAL_GPIO_ReadPin(M5ENDSTOP_GPIO_Port, M5ENDSTOP_Pin) == GPIO_PIN_RESET;
+  if (motor == 6U) return HAL_GPIO_ReadPin(M6ENDSTOP_GPIO_Port, M6ENDSTOP_Pin) == GPIO_PIN_RESET;
+  return false;
+}
+
+/* Lecture filtree : blanking + vote majoritaire (copie du contrat AVR). */
+bool hwReadEndstopStable(uint8_t motor, uint16_t blank_us, uint8_t samples, uint8_t need_on)
+{
+  if (blank_us) delay_us(blank_us);
+  uint8_t on = 0;
+  for (uint8_t i = 0; i < samples; ++i) {
+    if (hwReadEndstop(motor)) ++on;
+    delay_us(50U);
+  }
+  return (on >= need_on);
+}
+
+/* LED unique PB11 deja pilotee par enable/disableServo : on ne mappe pas
+   les couleurs AVR ici (no-op), la LED reste l'indicateur servo. */
+void hwLedSet(const char* color) { (void)color; }
+void refreshConnectionLed(void)  { }
+
+/* Logs homing/calibration -> Motion Center via USB CDC. */
+void hwLog(const char* msg)
+{
+  cdc_send_str(msg);
+  cdc_send_str("\n");
+}
+
+void SerialReaderP(void)
+{
+  /* Suivi d'inactivité : SimHub n'envoie aucun terminateur de ligne. */
+  static uint16_t s_prevLen    = 0U;
+  static uint32_t s_lastRxTick = 0U;
+  if (s_len != s_prevLen) { s_prevLen = s_len; s_lastRxTick = HAL_GetTick(); }
+
+  for (;;) {
+    if (s_len == 0U) break;
+
+    uint8_t c0 = s_stash[0];
+
+    /* ===== Trames de cibles SimHub : 'P' + 6 axes × 2 octets (16 bits) === */
+    if (c0 == 'P') {
+      if (s_len >= 13U) {
+        const uint8_t *payload = &s_stash[1];
+        /* AxisResolution=16 (0..65535) → unités internes 0..32767 */
+        ax[0].target = be16(&payload[0]) >> 1;
+        ax[1].target = be16(&payload[2]) >> 1;
+        ax[2].target = be16(&payload[4]) >> 1;
+        ax[3].target = be16(&payload[6]) >> 1;
+        /* Axes optionnels M5/M6 (regle AVR) :
+           - attendre la fin du homing (sinon cible ignoree)
+           - si max calibre : mapper 0..65535 -> [0, max - 2*margin]
+             (le zero logique a deja consomme une margin au homing)
+           - sinon : valeur brute (comportement AVR historique) */
+        for (uint8_t i = 4; i < 6 && i < NUM_MOTORS; i++) {
+          if (!axCfg[i].connected)            continue;
+          if (!ax[i].homed || ax[i].homing)   continue;
+          if (calibIsBusy(i))                 continue;
+          uint16_t u = be16(&payload[2U * i]);
+          if (axCfg[i].maxPos != 0U) {
+            uint32_t twice = (uint32_t)axCfg[i].margin * 2UL;
+            uint16_t hi = ((uint32_t)axCfg[i].maxPos > twice)
+                        ? (uint16_t)((uint32_t)axCfg[i].maxPos - twice) : 0U;
+            ax[i].target = (hi == 0U) ? 0U
+                         : (uint16_t)(((uint32_t)u * hi) / 65535UL);
+          } else {
+            ax[i].target = u;
+          }
+        }
+        s_pFrameApplied = true;
+        stash_consume(13U);
+        continue;
+      }
+      /* Trame incomplète : attendre la suite. Si plus rien n'arrive après
+         20 ms, c'est peut-être une commande texte commençant par 'P' :
+         laisser le chemin texte ci-dessous la traiter. */
+      if ((HAL_GetTick() - s_lastRxTick) < 20U) break;
+    }
+
+    /* ===== Trames binaires legacy : 'S' + {A,T,C} ======================== */
+    if (c0 == 'S') {
+      if (s_len < 2U) break;
+
+      uint8_t cmd = s_stash[1];
+
+      if (cmd == 'A') {
+        stash_consume(2U);
+        for (uint8_t i = 0; i < NUM_MOTORS; i++) {
+          ax[i].pos = 0U;
+          ax[i].target   = 0U;
+          s_lastStepUs[i] = 0U;
+          s_dirV[i]       = 0;
+        }
+        simhubConnected = true;
+        enableServo();
+        cdc_send_str("OK\n");
+        continue;
+      }
+
+      if (cmd == 'T') {
+        if (s_len < 12U) break;
+        bool valid = true;
+        for (uint8_t m = 0; m < 5U; m++) {
+          if (s_stash[2U + m * 2U] & 0x80U) { valid = false; break; }
+        }
+        if (!valid) { stash_consume(1U); continue; }
+        const uint8_t *payload = &s_stash[2];
+        ax[0].target = be16(&payload[0]);
+        ax[1].target = be16(&payload[2]);
+        ax[2].target = be16(&payload[4]);
+        ax[3].target = be16(&payload[6]);
+        stash_consume(12U);
+        continue;
+      }
+
+      if (cmd == 'C') {
+        stash_consume(2U);
+        simhubConnected = false;
+        for (uint8_t i = 0; i < NUM_MOTORS; i++) ax[i].target = 0U;
+        s_pendingDisable = true;
+        continue;
+      }
+      /* 'S' + autre chose (SH_*, SET…) : ligne texte, chemin ci-dessous. */
+    }
+
+    /* ===== Commandes texte (SimHub handshake / Motion Center) ============ */
+    if (c0 < 0x20 || c0 > 0x7E) { stash_consume(1U); continue; }
+
+    uint16_t nl = 0U;
+    bool eol = false;
+    while (nl < s_len) {
+      uint8_t c = s_stash[nl];
+      if (c == '\n' || c == '\r') { eol = true; break; }
+      nl++;
+    }
+    if (!eol) {
+      /* SimHub n'envoie AUCUN terminateur (SH_CONNECTED, SH_START…).
+         Repli : si plus rien n'arrive depuis 20 ms, traiter le stash
+         entier comme une ligne complète. */
+      if ((HAL_GetTick() - s_lastRxTick) < 20U) {
+        if (s_len >= (uint16_t)(STASH_SIZE - 1U)) s_len = 0U;
+        break;
+      }
+      nl = s_len;   /* ligne = tout le contenu, sans terminateur */
+    }
+
+    char line[48];
+    uint16_t n = nl;
+    if (n > (uint16_t)(sizeof(line) - 1U)) n = (uint16_t)(sizeof(line) - 1U);
+    memcpy(line, s_stash, n);
+    line[n] = '\0';
+
+    /* Consommer la ligne + terminateur(s) s'il y en a. */
+    uint16_t adv = nl;
+    if (eol) {
+      adv++;
+      if (adv < s_len && (s_stash[adv] == '\n' || s_stash[adv] == '\r')) adv++;
+    }
+    stash_consume(adv);
+
+    handleTextCommand(line);
+  }
+}
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USB_DEVICE_Init();
+  /* USER CODE BEGIN 2 */
+  /* MX_USB_DEVICE_Init() initialise déjà la pile USB CDC (USBD_Init,
+     USBD_RegisterClass, USBD_CDC_RegisterInterface, USBD_Start). */
+  MX_TIM2_Init();       /* TIM2 : free-running 1 MHz counter pour delay_us() */
+  actuatorConfigInit(); /* peuple ax[]/axCfg[] pour les 4 axes */
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+	  axMicros();               /* entretient le compteur µs 32 bits (anti-wrap TIM2) */
+	  SerialReaderP();          /* traite le stash USB (SH_START, ST, etc.) */
+	  homingTick();             /* FSM homing MIN M5/M6 (non bloquant) */
+	  calibTick();              /* FSM calibration complete (non bloquant) */
+	  serviceCalibReply();      /* OK/ERR differe en fin de calibration */
+
+	  /* Regle AVR : geler M1-M4 pendant le homing/calib M5/M6, et jusqu'a
+	     la premiere frame P appliquee apres la fin (anti a-coup). */
+	  {
+	    const bool busy56 = homingIsActive(4) || homingIsActive(5)
+	                     || calibIsBusy(4)    || calibIsBusy(5);
+	    if (busy56) { s_holdBaseAxes = true; s_pFrameApplied = false; }
+	    else if (s_holdBaseAxes && s_pFrameApplied) s_holdBaseAxes = false;
+	    if (busy56 || s_holdBaseAxes) {
+	      for (uint8_t i = 0; i < 4U; i++) ax[i].target = ax[i].pos;
+	    }
+	  }
+	  stepDirServiceFastV2();   /* génère les pas vers ax[].target */
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, S6_Pin|S5_Pin|S4_Pin|S3_Pin
+                          |S2_Pin|S1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, D1_Pin|D2_Pin|LED_Pin|ENABLE_RELAY_Pin
+                          |ENABLE_SERVO_Pin|D6_Pin|D3_Pin|D4_Pin
+                          |D5_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : M5ENDSTOP_Pin */
+  GPIO_InitStruct.Pin = M5ENDSTOP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(M5ENDSTOP_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : S6_Pin S5_Pin S4_Pin S3_Pin
+                           S2_Pin S1_Pin */
+  GPIO_InitStruct.Pin = S6_Pin|S5_Pin|S4_Pin|S3_Pin
+                          |S2_Pin|S1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : M6ENDSTOP_Pin */
+  GPIO_InitStruct.Pin = M6ENDSTOP_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(M6ENDSTOP_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : D1_Pin D2_Pin D6_Pin D3_Pin
+                           D4_Pin D5_Pin */
+  GPIO_InitStruct.Pin = D1_Pin|D2_Pin|D6_Pin|D3_Pin
+                          |D4_Pin|D5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED_Pin ENABLE_RELAY_Pin ENABLE_SERVO_Pin */
+  GPIO_InitStruct.Pin = LED_Pin|ENABLE_RELAY_Pin|ENABLE_SERVO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/**
+  * @brief  TIM2 – free-running 1 MHz counter (polled, no IRQ).
+  *         HSE 8 MHz x PLLMUL9 = SYSCLK 72 MHz. APB1 = HCLK/2 = 36 MHz, mais
+  *         le prescaler APB1 != 1 double l'horloge timer -> TIM2 clock = 72 MHz.
+  *         PSC=71 -> tick = 72 MHz / 72 = 1 MHz (1 µs) exact.
+  *         ARR=0xFFFF -> compteur 16 bits, wrap a 65535 µs.
+  *         (Avant : PSC=47 donnait 1,5 MHz -> delay_us ~1,5x trop court.)
+  */
+static void MX_TIM2_Init(void)
+{
+  __HAL_RCC_TIM2_CLK_ENABLE();
+  TIM2->PSC  = 71U;       /* 72 MHz / 72 = 1 MHz tick (1 µs) */
+  TIM2->ARR  = 0xFFFFU;
+  TIM2->CNT  = 0U;
+  TIM2->EGR  = TIM_EGR_UG;
+  TIM2->SR   = 0U;
+  TIM2->DIER = 0U;        /* no interrupt */
+  TIM2->CR1  = TIM_CR1_CEN;
+}
+
+static void delay_us(uint16_t us)
+{
+  uint16_t start = (uint16_t)TIM2->CNT;
+  while ((uint16_t)((uint16_t)TIM2->CNT - start) < us) { }
+}
+
+/* Base de temps µs pour le module Actuator (axStep / homing).
+   TIM2 est un compteur 16 bits a 1 µs (PSC=71) ; on l'etend en 32 bits par
+   suivi du wrap. Surcharge le symbole faible defini dans Actuator.cpp.
+   IMPORTANT : doit etre appele regulierement (< 65 ms) pour ne pas manquer
+   de wrap -> appel ajoute en tete de boucle principale. Sur de l'ecart
+   (delta), pas absolu : un trou (ex. HAL_Delay) ne fausse qu'un seul calcul. */
+static volatile uint32_t s_usHigh = 0U;
+static volatile uint16_t s_usLast = 0U;
+uint32_t axMicros(void)
+{
+  uint16_t now = (uint16_t)TIM2->CNT;
+  if (now < s_usLast) s_usHigh += 0x10000UL;   /* TIM2 a reboucle */
+  s_usLast = now;
+  return s_usHigh + now;
+}
+
+/* Initialise le modele verin partage pour cette box F103 (4 axes servo).
+   Pas d'endstop cable ici -> homing desactive ; valeurs pretes pour un futur
+   homing (passer hasEndstop=true et hastobehomed=true le moment venu). */
+static void actuatorConfigInit(void)
+{
+  /* M1-M4 : servos A6-RS, position absolue, pas de homing firmware. */
+  for (uint8_t i = 0; i < 4U; i++) {
+    axCfg[i].maxPos          = 32767U;  /* plage logique SimHub (0..32767) */
+    axCfg[i].margin          = 0U;
+    axCfg[i].dir             = (int8_t)+1;  /* donnee seule : non appliquee par le moteur de pas */
+    axCfg[i].connected       = true;
+    axCfg[i].hasEndstop      = false;
+    axCfg[i].hastobehomed    = false;
+    axCfg[i].absoluteEncoder = true;
+    axCfg[i].hometoMax       = false;
+    axCfg[i].endParkPosition = false;
+
+    ax[i].calibrated = true;   /* coherent avec STATUS (cal=1) */
+    ax[i].homed      = true;   /* position courante = reference 0 */
+    ax[i].homing     = false;
+    ax[i].hs         = HS_IDLE;
+  }
+
+  /* M5/M6 : steppers optionnels avec endstop cable -> homing/calibration
+     comme sur l'ATmega32U4. max/margin charges depuis la NVM si le schema
+     est valide (sinon defauts non calibres). */
+  const bool nvmValid =
+      (hwEepromReadU16(EEPROM_HAS_BEEN_FACTORYRESET) == EEPROM_SCHEMA_VERSION);
+  static const uint16_t maxAddr[2]    = { EEPROM_M5MAX_ADDR,    EEPROM_M6MAX_ADDR    };
+  static const uint16_t marginAddr[2] = { EEPROM_M5MARGIN_ADDR, EEPROM_M6MARGIN_ADDR };
+  static const uint16_t connAddr[2]   = { EEPROM_M5CONNECTED_ADDR, EEPROM_M6CONNECTED_ADDR };
+  for (uint8_t k = 0; k < 2U; k++) {
+    const uint8_t i = (uint8_t)(4U + k);
+    if (i >= NUM_MOTORS) break;
+    const uint16_t m  = nvmValid ? hwEepromReadU16(maxAddr[k])    : 0U;
+    const uint16_t mg = nvmValid ? hwEepromReadU16(marginAddr[k]) : 0U;
+    /* Defaut AVR (Globals.cpp) : M5+ deconnectes tant que l'utilisateur
+       ne les active pas dans Motion Center. */
+    const bool     cn = nvmValid ? (hwEepromReadU16(connAddr[k]) != 0U) : false;
+
+    axCfg[i].maxPos          = m;
+    axCfg[i].margin          = mg;
+    axCfg[i].dir             = (int8_t)+1;
+    axCfg[i].connected       = cn;
+    axCfg[i].hasEndstop      = true;    /* M5ENDSTOP / M6ENDSTOP cables */
+    axCfg[i].hastobehomed    = true;
+    axCfg[i].absoluteEncoder = false;
+    axCfg[i].hometoMax       = false;
+    axCfg[i].endParkPosition = false;
+
+    ax[i].calibrated = (m != 0U);
+    ax[i].homed      = false;   /* zero inconnu tant que pas home */
+    ax[i].homing     = false;
+    ax[i].hs         = HS_IDLE;
+  }
+
+  /* Vitesse de homing persistee (defaut FSM = ~333 sps si invalide). */
+  if (nvmValid) {
+    uint16_t sps = hwEepromReadU16(EEPROM_HOMINGSPS_ADDR);
+    if (sps >= 50U && sps <= 10000U) {
+      homingSetSpeed((1000000UL + sps / 2U) / sps, 1U);
+    }
+  }
+}
+
+/**
+  * @brief  Génération step/dir – appelée depuis le main loop (pas d'ISR).
+  *         DIR et STEP sont décidés sur un SEUL instantané (même 'now') : tout
+  *         moteur effectivement impulsé a donc sa broche DIR posée avec le temps
+  *         de setup respecté, y compris lors d'une inversion de sens. Cela
+  *         supprime le risque d'un pas émis avec une direction périmée.
+  *         Pulse HIGH = PULSE_HIGH_US, setup DIR = DIRECTION_DELAY_US.
+  */
+/* Largeurs en µs RÉELLES depuis le correctif PSC=71 (TIM2 = 1 MHz exact).
+   Avant : TIM2 tournait à 1,5 MHz -> ces durées étaient ~1,5x plus courtes.
+   Valeurs sûres pour un drive step/dir type A6-RS ; ajustables si besoin. */
+#define DIRECTION_DELAY_US  8U
+#define PULSE_HIGH_US       5U
+#define PULSE_LOW_US        3U
+#define MIN_INTER_STEP_US  2U
+
+static void stepDirServiceFastV2(void)
+{
+  if (!servoEnabled) return;
+  if ((int32_t)(HAL_GetTick() - servoMotionAllowedAt) < 0) return;
+
+  uint16_t * const lastStepUs = s_lastStepUs;
+  int8_t   * const dirV       = s_dirV;
+
+  /* Instantané unique : sert à la fois pour la décision DIR et STEP. */
+  uint16_t now = (uint16_t)TIM2->CNT;
+
+  uint16_t stepMask  = 0;
+  bool     dirChanged = false;
+
+  /* Pass 1 : sélectionner les moteurs à impulser MAINTENANT et poser leur DIR.
+     Le même critère gouverne DIR et STEP → pas de moteur impulsé sans DIR. */
+  for (uint8_t i = 0; i < NUM_MOTORS; i++)
+  {
+    if (ax[i].pos == ax[i].target) continue;
+    if ((uint16_t)(now - lastStepUs[i]) < MIN_INTER_STEP_US) continue;
+
+    int8_t nd = (ax[i].target > ax[i].pos) ? 1 : -1;
+    if (nd < 0 && ax[i].pos == 0U) { ax[i].target = 0U; continue; }
+
+    if (nd != dirV[i])
+    {
+      dirV[i] = nd;
+      if (nd > 0)
+        GPIOB->BRR  = DIR_PIN[i];
+      else
+        GPIOB->BSRR = DIR_PIN[i];
+      dirChanged = true;
+    }
+
+    stepMask |= STEP_PIN[i];
+  }
+
+  if (stepMask == 0) return;
+
+  /* Respecter le temps de setup DIR avant le front STEP. */
+  if (dirChanged) delay_us(DIRECTION_DELAY_US);
+
+  /* Pulse simultané. */
+  GPIOA->BSRR = stepMask;
+  delay_us(PULSE_HIGH_US);
+  GPIOA->BRR  = stepMask;
+  delay_us(PULSE_LOW_US);
+
+  /* Pass 2 : mise à jour positions + horodatages. */
+  uint16_t newNow = (uint16_t)TIM2->CNT;
+  for (uint8_t i = 0; i < NUM_MOTORS; i++)
+  {
+    if (!(stepMask & STEP_PIN[i])) continue;
+    if (dirV[i] > 0) ax[i].pos++;
+    else             ax[i].pos--;
+    lastStepUs[i] = newNow;
+  }
+}
+
+/* ==========================================================================
+ *  Protocole texte Motion Center (coexiste avec le binaire SimHub)
+ * ========================================================================== */
+
+/* Envoi d'une chaîne ASCII sur l'USB CDC.
+   CRITIQUE : CDC_Transmit_FS ne COPIE PAS le buffer — il memorise le
+   pointeur, et les paquets de continuation (>64 octets) sont lus depuis ce
+   buffer PLUS TARD, dans l'IRQ USB. Transmettre un buffer de pile corrompt
+   donc toute reponse multi-paquets (ex: ligne STATUS tronquee apres 64
+   octets). On copie dans un buffer statique, et on attend la fin du
+   transfert precedent avant de le reutiliser. */
+static uint8_t s_cdcTxBuf[192];
+static void cdc_send_str(const char *s)
+{
+  uint16_t n = (uint16_t)strlen(s);
+  if (n == 0U) return;
+  if (n > (uint16_t)sizeof(s_cdcTxBuf)) n = (uint16_t)sizeof(s_cdcTxBuf);
+
+  /* Attendre que l'IRQ USB ait fini de lire s_cdcTxBuf (50 ms max). */
+  USBD_CDC_HandleTypeDef *hcdc =
+      (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
+  if (hcdc == NULL) return;                  /* USB pas encore enumere */
+  for (uint16_t k = 0; (k < 500U) && (hcdc->TxState != 0U); k++)
+    delay_us(100U);
+  if (hcdc->TxState != 0U) return;           /* lien mort : on jette */
+
+  memcpy(s_cdcTxBuf, s, n);
+  for (uint16_t k = 0; k < 64U; k++)
+  {
+    if (CDC_Transmit_FS(s_cdcTxBuf, n) == USBD_OK) return;
+    delay_us(200U);
+  }
+}
+
+static void txtToUpper(char *s)
+{
+  for (; *s; ++s)
+    if (*s >= 'a' && *s <= 'z') *s = (char)(*s - 32);
+}
+
+static bool txtEq(const char *a, const char *b)
+{
+  while (*a && *b) { if (*a != *b) return false; ++a; ++b; }
+  return (*a == '\0' && *b == '\0');
+}
+
+/* Ligne STATUS compatible Motion Center (préfixe "STATUS ").
+   Cette box a 4 axes, sans EEPROM/calibration : conn=1, cal=1, max=32767. */
+static void sendStatusLine(void)
+{
+  /* Cette box n'a ni EEPROM ni calibration : conn=1, cal=1, max=32767.
+     Version et nombre d'axes proviennent de boxCfg (Actuator.h). */
+  static char line[192];   /* statique : pile 1KB du F103 + coherence TX */
+  int off = snprintf(line, sizeof(line),
+                     "STATUS FW=2.1 BOX=%u SERVO=%c",
+                     (unsigned)boxCfg.version,
+                     servoEnabled ? '1' : '0');
+  if (off < 0) return;
+  for (uint8_t i = 0; i < NUM_MOTORS && off < (int)sizeof(line); i++) {
+    int w;
+    if (i < 4U) {
+      w = snprintf(line + off, sizeof(line) - (size_t)off,
+                   " M%u=1,1,32767,0", (unsigned)(i + 1));
+    } else {       /* M5/M6 : etat reel conn,cal,max,margin */
+      w = snprintf(line + off, sizeof(line) - (size_t)off,
+                   " M%u=%u,%u,%u,%u", (unsigned)(i + 1),
+                   axCfg[i].connected ? 1U : 0U,
+                   ax[i].calibrated   ? 1U : 0U,
+                   (unsigned)axCfg[i].maxPos,
+                   (unsigned)axCfg[i].margin);
+    }
+    if (w < 0) break;
+    off += w;
+  }
+  if (off < (int)sizeof(line) - 1) { line[off++] = '\n'; line[off] = '\0'; }
+  cdc_send_str(line);
+}
+
+/* Passage en mode DFU : saut au bootloader système STM32 (0x1FFFF000).
+   Les drives sont d'abord coupés par sécurité. Ne revient jamais. */
+static void enterDFU(void)
+{
+  /* Sécurité : relâcher relais + drives avant de quitter le firmware. */
+  disableServo();
+
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_BKP_CLK_ENABLE();
+  HAL_PWR_EnableBkUpAccess();
+  BKP->DR1 = 0x4F50U;        /* BKP_FORCE_MAGIC — doit matcher iap.c */
+
+  NVIC_SystemReset();        /* reset à froid → bootloader → mode update */
+  while (1) { }
+}
+
+/* ==========================================================================
+ *  Commandes de calibration M5/M6 (protocole identique a l'AVR v1.8)
+ * ========================================================================== */
+
+/* Tokenisation in-place : retourne le token courant, avance *cur. */
+static char* nextTok(char **cur)
+{
+  char *s = *cur;
+  while (*s == ' ' || *s == '\t') s++;
+  if (*s == '\0') { *cur = s; return NULL; }
+  char *tok = s;
+  while (*s && *s != ' ' && *s != '\t') s++;
+  if (*s) { *s = '\0'; s++; }
+  *cur = s;
+  return tok;
+}
+
+static bool parseU32(const char *s, uint32_t *out)
+{
+  if (!s || !*s) return false;
+  uint32_t v = 0;
+  for (; *s; s++) {
+    if (*s < '0' || *s > '9') return false;
+    if (v > 429496728UL) return false;        /* overflow guard */
+    v = v * 10UL + (uint32_t)(*s - '0');
+  }
+  *out = v;
+  return true;
+}
+
+/* Persiste max+margin d'un axe optionnel (motor = 5 ou 6). */
+static void saveCalibration(uint8_t motor)
+{
+  if (motor != 5U && motor != 6U) return;
+  const uint8_t idx = (uint8_t)(motor - 1U);
+  const uint16_t aMax = (motor == 5U) ? EEPROM_M5MAX_ADDR    : EEPROM_M6MAX_ADDR;
+  const uint16_t aMar = (motor == 5U) ? EEPROM_M5MARGIN_ADDR : EEPROM_M6MARGIN_ADDR;
+  hwEepromWriteU16(aMax, axCfg[idx].maxPos);
+  hwEepromWriteU16(aMar, axCfg[idx].margin);
+  /* Premiere ecriture sur flash vierge : poser le marqueur de schema. */
+  if (hwEepromReadU16(EEPROM_HAS_BEEN_FACTORYRESET) != EEPROM_SCHEMA_VERSION)
+    hwEepromWriteU16(EEPROM_HAS_BEEN_FACTORYRESET, EEPROM_SCHEMA_VERSION);
+}
+
+/* Reponse differee : OK/ERR quand la sequence de calibration se termine.
+   A appeler dans la boucle principale. */
+static void serviceCalibReply(void)
+{
+  if (s_calOp == CALOP_NONE) return;
+
+  for (uint8_t i = 4; i < NUM_MOTORS; i++) {
+    if (!(s_calMask & (1u << i))) continue;
+    if (s_calOp == CALOP_DETECT_MIN) {
+      if (ax[i].homing) return;               /* encore en cours */
+    } else {
+      if (calibIsBusy(i)) return;             /* encore en cours */
+    }
+  }
+
+  /* Tout est termine : verdict global. */
+  bool ok = true;
+  for (uint8_t i = 4; i < NUM_MOTORS; i++) {
+    if (!(s_calMask & (1u << i))) continue;
+    if (s_calOp == CALOP_DETECT_MIN) {
+      ok = ok && ax[i].homed && (ax[i].hs != HS_ERROR);
+    } else {
+      ok = ok && (calibGetState(i) == CAL_DONE);
+      if (calibGetState(i) == CAL_DONE) saveCalibration((uint8_t)(i + 1U));
+      calibAckResult(i);
+    }
+  }
+  cdc_send_str(ok ? "OK\n" : "ERR CALIB_FAILED\n");
+  s_calOp   = CALOP_NONE;
+  s_calMask = 0;
+}
+
+/* SET <KEY> <VALUE> [MOTOR] — sous-ensemble M5/M6 du protocole AVR. */
+static void handleSet(char *cursor)
+{
+  char *key = nextTok(&cursor);
+  char *val = nextTok(&cursor);
+  char *mot = nextTok(&cursor);
+  if (!key || !val) { cdc_send_str("ERR BAD_ARGS\n"); return; }
+
+  uint32_t v32 = 0;
+  if (!parseU32(val, &v32)) { cdc_send_str("ERR BAD_VALUE\n"); return; }
+  if (v32 > 65535UL) v32 = 65535UL;
+
+  if (txtEq(key, "HOMING_S")) {
+    uint32_t sps = v32;
+    if (sps < 50UL)    sps = 50UL;
+    if (sps > 10000UL) sps = 10000UL;
+    cdc_send_str("OK\n");                  /* repondre AVANT l'ecriture flash */
+    homingSetSpeed((1000000UL + sps / 2UL) / sps, 1U);
+    hwEepromWriteU16(EEPROM_HOMINGSPS_ADDR, (uint16_t)sps);
+    return;
+  }
+
+  uint32_t motor = 0;
+  if (!mot || !parseU32(mot, &motor) || motor < 1U || motor > 6U) {
+    cdc_send_str("ERR BAD_MOTOR\n");
+    return;
+  }
+  const uint8_t idx = (uint8_t)(motor - 1U);
+
+  /* CONNECTED : accepte M1-M6 comme l'AVR. M1-M4 sont cables en dur sur
+     cette box -> no-op OK (pas d'ERR, sinon l'UI se desynchronise). */
+  if (txtEq(key, "CONNECTED")) {
+    cdc_send_str("OK\n");          /* repondre AVANT l'ecriture flash (regle AVR) */
+    if (motor >= 5U) {
+      axCfg[idx].connected = (v32 != 0UL);
+      if (v32 == 0UL) { ax[idx].homed = false; ax[idx].target = ax[idx].pos; }
+      hwEepromWriteU16((motor == 5U) ? EEPROM_M5CONNECTED_ADDR
+                                     : EEPROM_M6CONNECTED_ADDR,
+                       (v32 != 0UL) ? 1U : 0U);
+      if (hwEepromReadU16(EEPROM_HAS_BEEN_FACTORYRESET) != EEPROM_SCHEMA_VERSION)
+        hwEepromWriteU16(EEPROM_HAS_BEEN_FACTORYRESET, EEPROM_SCHEMA_VERSION);
+    }
+    return;
+  }
+
+  /* MAX / MARGIN : geres uniquement pour les axes optionnels (regle AVR
+     MARGIN_ONLY_M5_M6 ; M1-M4 ont un max virtuel fixe sur cette box). */
+  if (motor < 5U) { cdc_send_str("ERR ONLY_M5_M6\n"); return; }
+
+  if (txtEq(key, "MAX")) {
+    cdc_send_str("OK\n");          /* repondre AVANT l'ecriture flash */
+    axCfg[idx].maxPos = (uint16_t)v32;
+    ax[idx].calibrated = (v32 != 0UL);
+    saveCalibration((uint8_t)motor);
+    return;
+  }
+  if (txtEq(key, "MARGIN")) {
+    cdc_send_str("OK\n");          /* repondre AVANT l'ecriture flash */
+    axCfg[idx].margin = (uint16_t)v32;
+    saveCalibration((uint8_t)motor);
+    return;
+  }
+  cdc_send_str("ERR UNKNOWN_KEY\n");
+}
+
+/* autoConnectIfNeeded (regle AVR) : une commande de calibration sur un axe
+   non connecte le connecte implicitement et persiste. */
+static void autoConnectIfNeeded(uint8_t motor)
+{
+  if (motor != 5U && motor != 6U) return;
+  const uint8_t idx = (uint8_t)(motor - 1U);
+  if (axCfg[idx].connected) return;
+  axCfg[idx].connected = true;
+  hwEepromWriteU16((motor == 5U) ? EEPROM_M5CONNECTED_ADDR
+                                 : EEPROM_M6CONNECTED_ADDR, 1U);
+  if (hwEepromReadU16(EEPROM_HAS_BEEN_FACTORYRESET) != EEPROM_SCHEMA_VERSION)
+    hwEepromWriteU16(EEPROM_HAS_BEEN_FACTORYRESET, EEPROM_SCHEMA_VERSION);
+}
+
+/* DO <ACTION> [MOTOR] — actions de calibration M5/M6 (protocole AVR). */
+static void handleDo(char *cursor)
+{
+  char *act = nextTok(&cursor);
+  char *mot = nextTok(&cursor);
+  if (!act) { cdc_send_str("ERR BAD_ARGS\n"); return; }
+
+  uint32_t motor = 0;
+  if (mot && !parseU32(mot, &motor)) { cdc_send_str("ERR BAD_MOTOR\n"); return; }
+
+  if (txtEq(act, "CANCEL")) {
+    homingAbortRequest();                    /* traite au prochain homingTick() */
+    if (s_calOp != CALOP_NONE) {             /* clore la commande en attente */
+      s_calOp = CALOP_NONE; s_calMask = 0;
+    }
+    cdc_send_str("OK\n");
+    return;
+  }
+
+  if (txtEq(act, "DETECT_MIN")) {
+    if (motor != 0U && motor != 5U && motor != 6U) { cdc_send_str("ERR ONLY_M5_M6\n"); return; }
+    if (s_calOp != CALOP_NONE) { cdc_send_str("ERR BUSY\n"); return; }
+    if (motor == 5U || motor == 6U) autoConnectIfNeeded((uint8_t)motor);
+    uint8_t mask = 0;
+    if ((motor == 5U || motor == 0U) && axCfg[4].connected) { ax[4].homed = false; mask |= (1u << 4); }
+    if ((motor == 6U || motor == 0U) && NUM_MOTORS > 5 && axCfg[5].connected) { ax[5].homed = false; mask |= (1u << 5); }
+    if (!mask) { cdc_send_str("ERR NOT_CONNECTED\n"); return; }
+    if (!servoEnabled) enableServo();
+    homingStart(mask);
+    s_calOp = CALOP_DETECT_MIN; s_calMask = mask;   /* OK/ERR a la fin */
+    return;
+  }
+
+  if (txtEq(act, "DETECT_MAX") || txtEq(act, "MOVE_TO_MAX")) {
+    if (motor != 5U && motor != 6U) { cdc_send_str("ERR ONLY_M5_M6\n"); return; }
+    if (s_calOp != CALOP_NONE) { cdc_send_str("ERR BUSY\n"); return; }
+    const uint8_t idx = (uint8_t)(motor - 1U);
+    autoConnectIfNeeded((uint8_t)motor);
+    if (!ax[idx].homed) { cdc_send_str("ERR NOT_HOMED\n"); return; }
+    if (!servoEnabled) enableServo();
+    calibStartDetectMax(idx);
+    s_calOp = CALOP_CALIB; s_calMask = (uint8_t)(1u << idx);
+    return;
+  }
+
+  if (txtEq(act, "FULL_CALIB") || txtEq(act, "COMPLETE_CALIB")) {
+    if (motor != 5U && motor != 6U) { cdc_send_str("ERR ONLY_M5_M6\n"); return; }
+    if (s_calOp != CALOP_NONE) { cdc_send_str("ERR BUSY\n"); return; }
+    const uint8_t idx = (uint8_t)(motor - 1U);
+    autoConnectIfNeeded((uint8_t)motor);
+    if (!servoEnabled) enableServo();
+    calibStartFull(idx);
+    s_calOp = CALOP_CALIB; s_calMask = (uint8_t)(1u << idx);
+    return;
+  }
+
+  if (txtEq(act, "SERVO_ON"))  { enableServo();  cdc_send_str("OK\n"); return; }
+  if (txtEq(act, "SERVO_OFF")) {
+    homingCancel(); calibCancel();
+    s_calOp = CALOP_NONE; s_calMask = 0;
+    disableServo();
+    cdc_send_str("OK\n");
+    return;
+  }
+
+  cdc_send_str("ERR UNKNOWN_ACTION\n");
+}
+
+/* Dispatch d'une ligne de commande texte (terminée, sans \n). */
+static void handleTextCommand(const char *line)
+{
+  char buf[48];
+
+  /* Copie locale + trim gauche. */
+  uint8_t i = 0;
+  while (line[i] == ' ' || line[i] == '\t') i++;
+  uint8_t j = 0;
+  while (line[i] && j < (uint8_t)(sizeof(buf) - 1U)) buf[j++] = line[i++];
+  /* Trim droite. */
+  while (j > 0U && (buf[j - 1] == ' ' || buf[j - 1] == '\t')) j--;
+  buf[j] = '\0';
+  if (j == 0U) return;
+
+  txtToUpper(buf);
+
+  /* --- Bootloader DFU : !DFU --------------------------------------------- */
+  if (txtEq(buf, "!DFU")) {
+    cdc_send_str("DFU\n");
+    HAL_Delay(50);   /* laisser la réponse partir avant de détacher l'USB */
+    enterDFU();      /* ne revient pas */
+    return;
+  }
+
+  /* --- Handshake Motion Center ------------------------------------------ */
+  if (txtEq(buf, "MC_START") || txtEq(buf, "HELLO")) {
+    simhubConnected = true;
+    hostConnected   = true;
+    cdc_send_str("OK_MC_CONNECTED\n");
+    return;
+  }
+  if (txtEq(buf, "MC_DISABLE")) {
+    disableServo();
+    cdc_send_str("OK_MC_DISABLED\n");
+    return;
+  }
+  if (txtEq(buf, "MC_STOP") || txtEq(buf, "DISCONNECT")) {
+    cdc_send_str("OK_MC_DISCONNECTED\n");
+    return;
+  }
+
+  /* --- Handshake SimHub (variante texte) -------------------------------- */
+  if (txtEq(buf, "SH_CONNECTED") || txtEq(buf, "SHCONNECTED") || txtEq(buf, "SH-CONNECTED")) {
+    simhubConnected = true;
+    hostConnected   = true;
+    cdc_send_str("SHCONNECTED\n");
+    return;
+  }
+  if (txtEq(buf, "SH_START")) {
+    for (uint8_t k = 0; k < 4U; k++) {   /* M1-M4 seulement : M5/M6 gardent leur zero */
+      ax[k].pos = 0U; ax[k].target = 0U; s_lastStepUs[k] = 0U; s_dirV[k] = 0;
+    }
+    simhubConnected = true;
+    hostConnected   = true;
+    enableServo();
+    /* Regle cmdEnable AVR : homing auto des axes calibres non homes. */
+    {
+      uint8_t mask = 0;
+      for (uint8_t i = 4; i < NUM_MOTORS; i++) {
+        if (axCfg[i].connected && ax[i].calibrated && !ax[i].homed)
+          mask |= (uint8_t)(1u << i);
+      }
+      if (mask) homingStart(mask);
+    }
+    cdc_send_str("CALIBRATED\n");
+    return;
+  }
+  if (txtEq(buf, "SH_DISABLE")) {
+    simhubConnected = false;
+    hostConnected   = false;
+    homingCancel(); calibCancel();
+    disableServo();
+    cdc_send_str("SH_DISABLED\n");
+    return;
+  }
+  if (txtEq(buf, "SH_DOWN") || txtEq(buf, "SHDOWN") || txtEq(buf, "SH-DOWN")) {
+    simhubConnected = false;
+    hostConnected   = false;
+    cdc_send_str("BOX_DOWN\n");
+    return;
+  }
+
+  /* --- Contrôle générique ----------------------------------------------- */
+  if (txtEq(buf, "ENABLE")) {
+    enableServo();
+    cdc_send_str("OK_ENABLED\n");
+    return;
+  }
+  if (txtEq(buf, "DISABLE")) {
+    disableServo();
+    cdc_send_str("OK_DISABLED\n");
+    return;
+  }
+  if (txtEq(buf, "GET")) {
+    sendStatusLine();
+    return;
+  }
+
+  /* --- Calibration M5/M6 : SET <KEY> <VAL> [MOTOR] / DO <ACTION> [MOTOR] -- */
+  if (buf[0] == 'S' && buf[1] == 'E' && buf[2] == 'T' &&
+      (buf[3] == ' ' || buf[3] == '\t')) { handleSet(&buf[4]); return; }
+  if (buf[0] == 'D' && buf[1] == 'O' &&
+      (buf[2] == ' ' || buf[2] == '\t')) { handleDo(&buf[3]); return; }
+
+  cdc_send_str("ERR UNKNOWN_CMD\n");
+}
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+#ifdef USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

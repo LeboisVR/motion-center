@@ -1,0 +1,121 @@
+﻿{
+    "Output":  {
+                   "ImportType":  0,
+                   "Comments":  "PN98 = 12!!!\r\nUpdated: 2026-06-26 12:31\r\n",
+                   "CustomName":  "Lebois Racing Control Box - Firmware V2.1 - 4 to 7 actuators",
+                   "ShowOriginalName":  true,
+                   "Settings":  {
+                                    "EnableSerialLogging":  false,
+                                    "RtsEnable":  true,
+                                    "DtrEnable":  true,
+                                    "LockSettings":  true,
+                                    "SerialPort":  "COM8",
+                                    "DataBits":  8,
+                                    "SerialStopBits":  1,
+                                    "SerialParity":  0,
+                                    "BaudRate":  115200,
+                                    "AfterOpenDelay":  2500,
+                                    "GenericProtocolDefinition":  {
+                                                                      "SettingsBuilder":  {
+                                                                                              "Settings":  [
+
+                                                                                                           ],
+                                                                                              "IsEditMode":  false
+                                                                                          },
+                                                                      "ShowWaitForResponse":  true,
+                                                                      "AxisResolution":  15,
+                                                                      "AxisFormat":  1,
+                                                                      "StartCommands":  [
+                                                                                            {
+                                                                                                "MustWaitForMessage":  true,
+                                                                                                "WaitForMessage":  "CALIBRATED",
+                                                                                                "WaitForDelay":  50000,
+                                                                                                "Command":  "SH_START",
+                                                                                                "CommandDelay":  1
+                                                                                            }
+                                                                                        ],
+                                                                      "UpdateCommands":  [
+                                                                                             {
+                                                                                                 "Command":  "P\u003cAxis1\u003e\u003cAxis2\u003e\u003cAxis3\u003e\u003cAxis4\u003e\u003cAxis5\u003e\u003cAxis6\u003e\u003cAxis7\u003e",
+                                                                                                 "CommandDelay":  1
+                                                                                             }
+                                                                                         ],
+                                                                      "StopCommands":  [
+                                                                                           {
+                                                                                               "MustWaitForMessage":  true,
+                                                                                               "WaitForMessage":  "SH_DISABLED",
+                                                                                               "WaitForDelay":  5000,
+                                                                                               "Command":  "SH_DISABLE",
+                                                                                               "CommandDelay":  1
+                                                                                           }
+                                                                                       ],
+                                                                      "ConnectedCommands":  [
+                                                                                                 {
+                                                                                                     "MustWaitForMessage":  true,
+                                                                                                     "WaitForMessage":  "SHCONNECTED",
+                                                                                                     "WaitForDelay":  5000,
+                                                                                                     "Command":  "SH_CONNECTED",
+                                                                                                     "CommandDelay":  1
+                                                                                                 }
+                                                                                             ],
+                                                                      "DisconnectCommands":  [
+                                                                                                  {
+                                                                                                      "MustWaitForMessage":  false,
+                                                                                                      "WaitForMessage":  null,
+                                                                                                      "WaitForDelay":  5000,
+                                                                                                      "Command":  "SH_DOWN",
+                                                                                                      "CommandDelay":  1
+                                                                                                  }
+                                                                                              ],
+                                                                      "IdleStartCommands":  [],
+                                                                      "IdleUpdateCommands":  [],
+                                                                      "IdleStopCommands":  []
+                                                                  },
+                                    "ActuatorOrderingSettings":  {
+                                                                     "MaxActuatorsEx":  7,
+                                                                     "ConfigurationDone":  true,
+                                                                     "UseParkPosition":  true,
+                                                                     "ParkDuration":  5000,
+                                                                     "Roles":  [
+                                                                                   {
+                                                                                       "ParkPosition":  0.0,
+                                                                                       "Role":  2
+                                                                                   },
+                                                                                   {
+                                                                                       "ParkPosition":  0.0,
+                                                                                       "Role":  4
+                                                                                   },
+                                                                                   {
+                                                                                       "ParkPosition":  0.0,
+                                                                                       "Role":  3
+                                                                                   },
+                                                                                   {
+                                                                                       "ParkPosition":  0.0,
+                                                                                       "Role":  1
+                                                                                   },
+                                                                                   {
+                                                                                       "ParkPosition":  0.0,
+                                                                                       "Role":  5
+                                                                                   },
+                                                                                   {
+											"ParkPosition":  0.0,
+                                                                                       "Role":  14
+                                                                                   },
+                                                                                   {
+"ParkPosition":  0.0,
+                                                                                       "Role":  14
+                                                                                   }
+                                                                               ]
+                                                                 },
+                                    "OutputId":  "8900b8e0-7d3f-4b56-887c-7301de8af182",
+                                    "PresetSource":  null
+                                },
+                   "ReviewManager":  {
+                                         "AvailableReviewKeys":  "Controller_Connection, Controller_Mapping",
+                                         "BypassReviewKeys":  [
+
+                                                              ]
+                                     },
+                   "TypeName":  "GenericSerialOutputV2"
+               }
+}

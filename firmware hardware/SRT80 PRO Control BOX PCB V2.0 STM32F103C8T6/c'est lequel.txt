@@ -1,0 +1,1 @@
+Bo^tiier avec tole pliée en U, carte stm32f103 soudée sur un pcb. Port USB c

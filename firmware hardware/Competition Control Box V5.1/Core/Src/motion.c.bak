@@ -1,0 +1,438 @@
+/**
+ ******************************************************************************
+ * @file    motion.c
+ * @brief   Moteur de mouvement generique 7 axes — implementation.
+ *
+ *  Principe (axes HW) :
+ *    - Le generateur emet des pulses STEP en PWM continu tant qu'il tourne.
+ *    - Le compteur (External Clock Mode 1) compte ces pulses via ITR.
+ *      CR1.DIR selectionne le sens up/down -> la position suit le mouvement.
+ *    - On charge CCR1 = vzero + cible et on arme l'IT Output Compare. Quand
+ *      CNT atteint la cible, l'IT coupe le generateur : arret au pulse pres,
+ *      CPU libre entre deux cibles.
+ *    - Compteurs 16 bits (TIM1/20/15) : CCR1 ne couvre que 16 bits. On suit
+ *      le mot haut en logiciel (IT Update) et on n'arme l'OC que lorsqu'on
+ *      entre dans la fenetre 16 bits finale -> course illimitee.
+ *
+ *  Principe (axes bit-bang S6/S7) :
+ *    - TIM6 @ 200 kHz : chaque IT bascule la broche STEP. 2 IT = 1 pulse
+ *      (jusqu'a 100 kHz). Le sens (DIR) coute 1 tick de setup. Comptage
+ *      logiciel dans l'IT.
+ ******************************************************************************
+ */
+#include "motion.h"
+
+/* ------------------------------------------------------------------------- */
+/*  Handles timers fournis par CubeMX (declares dans main.c).                */
+/*  >>> Ces symboles doivent exister apres configuration/regeneration CubeMX */
+/* ------------------------------------------------------------------------- */
+extern TIM_HandleTypeDef htim3;   /* gen S1 */
+extern TIM_HandleTypeDef htim2;   /* cnt S1 (32b) */
+extern TIM_HandleTypeDef htim4;   /* gen S2 */
+extern TIM_HandleTypeDef htim5;   /* cnt S2 (32b) */
+extern TIM_HandleTypeDef htim8;   /* gen S3 */
+extern TIM_HandleTypeDef htim1;   /* cnt S3 (16b) */
+extern TIM_HandleTypeDef htim16;  /* gen S4 */
+extern TIM_HandleTypeDef htim20;  /* cnt S4 (16b) */
+extern TIM_HandleTypeDef htim17;  /* gen S5 */
+extern TIM_HandleTypeDef htim15;  /* cnt S5 (16b) */
+extern TIM_HandleTypeDef htim6;   /* tick bit-bang 200 kHz */
+
+/* ------------------------------------------------------------------------- */
+/*  Modele d'axe                                                             */
+/* ------------------------------------------------------------------------- */
+typedef struct {
+  /* --- configuration statique (axes HW) --- */
+  TIM_HandleTypeDef *genTim;       /* generateur PWM STEP                    */
+  uint32_t           genChannel;   /* TIM_CHANNEL_x                          */
+  uint8_t            genMOE;        /* 1 = timer avance (BDTR/MOE requis)     */
+  TIM_HandleTypeDef *cntTim;       /* compteur esclave                       */
+  uint32_t           cntChannel;   /* TIM_CHANNEL_x (Output Compare)         */
+  uint8_t            width16;       /* 1 = compteur 16 bits (ext. overflow)   */
+  uint32_t           vzero;        /* valeur composite a la position 0       */
+
+  /* --- configuration GPIO --- */
+  GPIO_TypeDef      *dirPort;
+  uint16_t           dirPin;
+  GPIO_TypeDef      *stepPort;     /* bit-bang : sortie STEP                  */
+  uint16_t           stepPin;
+  uint8_t            isBitBang;
+
+  /* --- etat runtime --- */
+  volatile int32_t   target;       /* cible (pas signes)                     */
+  volatile int32_t   position;     /* cache position (bit-bang = autoritaire)*/
+  volatile int8_t    stepDir;      /* sens applique aux axes HW (+1/-1/0)    */
+  volatile uint8_t   running;      /* generateur actif (HW)                  */
+  volatile uint8_t   ocArmed;      /* IT Output Compare armee                */
+  volatile int32_t   cntHigh;      /* mot haut composite (compteurs 16b)     */
+  int32_t            targetCnt;    /* valeur composite a la cible            */
+  volatile uint8_t   bbPhase;      /* phase forme d'onde bit-bang (0/1)      */
+  volatile int8_t    bbDir;        /* dernier sens applique (bit-bang)       */
+} axis_t;
+
+static axis_t g_ax[MOTION_NUM_AXES];
+
+/* ------------------------------------------------------------------------- */
+/*  Helpers bas niveau                                                       */
+/* ------------------------------------------------------------------------- */
+
+/* Setup DIR : ~10 us a 170 MHz (boucle NOP, hors IT).                       */
+static void dir_setup_delay(void)
+{
+  for (volatile uint32_t i = 0; i < MOTION_DIR_SETUP_NOPS; i++) { __NOP(); }
+}
+
+/* Mapping canal -> flag d'IT Capture/Compare. */
+static uint32_t cc_it_flag(uint32_t channel)
+{
+  switch (channel) {
+    case TIM_CHANNEL_1: return TIM_IT_CC1;
+    case TIM_CHANNEL_2: return TIM_IT_CC2;
+    case TIM_CHANNEL_3: return TIM_IT_CC3;
+    case TIM_CHANNEL_4: return TIM_IT_CC4;
+    default:            return TIM_IT_CC1;
+  }
+}
+
+static void gen_start(axis_t *a)
+{
+  TIM_CCxChannelCmd(a->genTim->Instance, a->genChannel, TIM_CCx_ENABLE);
+  if (a->genMOE) { __HAL_TIM_MOE_ENABLE(a->genTim); }   /* timers avances    */
+  __HAL_TIM_ENABLE(a->genTim);
+}
+
+static void gen_stop(axis_t *a)
+{
+  __HAL_TIM_DISABLE(a->genTim);
+  TIM_CCxChannelCmd(a->genTim->Instance, a->genChannel, TIM_CCx_DISABLE);
+}
+
+/* Lecture position composite 32 bits d'un axe HW. */
+static int32_t hw_composite(axis_t *a)
+{
+  if (!a->width16) {
+    return (int32_t)((uint32_t)a->cntTim->Instance->CNT - a->vzero);
+  }
+  /* 16 bits : recombiner mot haut logiciel + CNT, avec garde anti-course
+     entre les deux lectures (un overflow peut survenir au milieu). */
+  uint32_t hi1, lo, hi2;
+  do {
+    hi1 = (uint32_t)a->cntHigh;
+    lo  = (uint32_t)(a->cntTim->Instance->CNT & 0xFFFFu);
+    hi2 = (uint32_t)a->cntHigh;
+  } while (hi1 != hi2);
+  uint32_t comp = (hi1 << 16) | lo;
+  return (int32_t)(comp - a->vzero);
+}
+
+/* Arme (ou desarme) l'Output Compare du compteur vers la cible courante. */
+static void oc_arm(axis_t *a)
+{
+  if (!a->width16) {
+    __HAL_TIM_SET_COMPARE(a->cntTim, a->cntChannel, (uint32_t)a->targetCnt);
+    __HAL_TIM_CLEAR_FLAG(a->cntTim, cc_it_flag(a->cntChannel));
+    __HAL_TIM_ENABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+    a->ocArmed = 1u;
+    return;
+  }
+  /* 16 bits : armer seulement dans la fenetre finale. */
+  uint32_t hiTarget = ((uint32_t)a->targetCnt >> 16) & 0xFFFFu;
+  if ((uint32_t)a->cntHigh == hiTarget) {
+    __HAL_TIM_SET_COMPARE(a->cntTim, a->cntChannel,
+                          (uint32_t)a->targetCnt & 0xFFFFu);
+    __HAL_TIM_CLEAR_FLAG(a->cntTim, cc_it_flag(a->cntChannel));
+    __HAL_TIM_ENABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+    a->ocArmed = 1u;
+  } else {
+    __HAL_TIM_DISABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+    a->ocArmed = 0u;
+  }
+}
+
+static void oc_disarm(axis_t *a)
+{
+  __HAL_TIM_DISABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+  a->ocArmed = 0u;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  on_new_target — appele UNIQUEMENT quand la cible change (anti-oscillation)*/
+/* ------------------------------------------------------------------------- */
+static void on_new_target(axis_t *a)
+{
+  int32_t pos = hw_composite(a);
+  if (a->target == pos) {                 /* deja a la cible : rien a faire  */
+    if (a->running) { gen_stop(a); a->running = 0u; }
+    oc_disarm(a);
+    return;
+  }
+
+  int8_t nd = (a->target > pos) ? (int8_t)+1 : (int8_t)-1;
+
+  if (nd != a->stepDir) {
+    /* DIR driver */
+    HAL_GPIO_WritePin(a->dirPort, a->dirPin,
+                      (nd > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    /* DIR compteur : up (DIR=0) si on monte, down (DIR=1) si on descend */
+    if (nd > 0) { a->cntTim->Instance->CR1 &= ~TIM_CR1_DIR; }
+    else        { a->cntTim->Instance->CR1 |=  TIM_CR1_DIR; }
+    a->stepDir = nd;
+    dir_setup_delay();                    /* ~10 us de setup DIR             */
+  }
+
+  a->targetCnt = (int32_t)(a->vzero + (uint32_t)a->target);
+  oc_arm(a);
+
+  if (!a->running) { gen_start(a); a->running = 1u; }
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Service bit-bang (appele depuis l'IT TIM6 @ 200 kHz)                     */
+/* ------------------------------------------------------------------------- */
+static void bitbang_tick(void)
+{
+  for (uint8_t i = MOTION_BB_FIRST; i < MOTION_NUM_AXES; i++) {
+    axis_t *a = &g_ax[i];
+
+    if (a->bbPhase == 0u) {                /* ligne basse : decider          */
+      if (a->position == a->target) { continue; }
+      int8_t nd = (a->target > a->position) ? (int8_t)+1 : (int8_t)-1;
+      if (nd != a->bbDir) {                /* changement de sens : 1 tick setup */
+        a->bbDir = nd;
+        HAL_GPIO_WritePin(a->dirPort, a->dirPin,
+                          (nd > 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        continue;
+      }
+      a->stepPort->BSRR = a->stepPin;      /* front montant                  */
+      a->bbPhase = 1u;
+    } else {                               /* ligne haute : front descendant */
+      a->stepPort->BRR = a->stepPin;
+      a->bbPhase = 0u;
+      a->position += a->bbDir;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Callbacks HAL (override des weak)                                        */
+/* ------------------------------------------------------------------------- */
+
+/* Output Compare atteint sur un compteur -> couper le generateur de l'axe.  */
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  for (uint8_t i = 0; i < MOTION_NUM_HS_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    if (a->cntTim->Instance == htim->Instance && a->ocArmed) {
+      gen_stop(a);
+      a->running = 0u;
+      oc_disarm(a);
+      a->position = hw_composite(a);       /* cache pour reporting           */
+      return;
+    }
+  }
+}
+
+/* Update : TIM6 (tick bit-bang) OU overflow des compteurs 16 bits.          */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM6) {
+    bitbang_tick();
+    return;
+  }
+
+  for (uint8_t i = 0; i < MOTION_NUM_HS_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    if (!a->width16) { continue; }
+    if (a->cntTim->Instance != htim->Instance) { continue; }
+
+    /* Sens reel = bit DIR du compteur. */
+    if (htim->Instance->CR1 & TIM_CR1_DIR) { a->cntHigh--; }
+    else                                   { a->cntHigh++; }
+
+    /* Entree dans la fenetre 16 bits finale -> armer l'OC. */
+    if (a->running && !a->ocArmed) {
+      uint32_t hiTarget = ((uint32_t)a->targetCnt >> 16) & 0xFFFFu;
+      if ((uint32_t)a->cntHigh == hiTarget) {
+        __HAL_TIM_SET_COMPARE(a->cntTim, a->cntChannel,
+                              (uint32_t)a->targetCnt & 0xFFFFu);
+        __HAL_TIM_CLEAR_FLAG(a->cntTim, cc_it_flag(a->cntChannel));
+        __HAL_TIM_ENABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+        a->ocArmed = 1u;
+      }
+    }
+    return;
+  }
+}
+
+/* ------------------------------------------------------------------------- */
+/*  Configuration statique des axes                                          */
+/* ------------------------------------------------------------------------- */
+static void axes_config(void)
+{
+  /* S1 : TIM3_CH1 -> TIM2 (32b) */
+  g_ax[AX_S1] = (axis_t){
+    .genTim = &htim3, .genChannel = TIM_CHANNEL_1, .genMOE = 0u,
+    .cntTim = &htim2, .cntChannel = TIM_CHANNEL_1, .width16 = 0u,
+    .vzero = MOTION_VZERO, .dirPort = D1_GPIO_Port, .dirPin = D1_Pin };
+
+  /* S2 : TIM4_CH1 -> TIM5 (32b) */
+  g_ax[AX_S2] = (axis_t){
+    .genTim = &htim4, .genChannel = TIM_CHANNEL_1, .genMOE = 0u,
+    .cntTim = &htim5, .cntChannel = TIM_CHANNEL_1, .width16 = 0u,
+    .vzero = MOTION_VZERO, .dirPort = D2_GPIO_Port, .dirPin = D2_Pin };
+
+  /* S3 : TIM8_CH1 -> TIM1 (16b) */
+  g_ax[AX_S3] = (axis_t){
+    .genTim = &htim8, .genChannel = TIM_CHANNEL_1, .genMOE = 1u,
+    .cntTim = &htim1, .cntChannel = TIM_CHANNEL_1, .width16 = 1u,
+    .vzero = MOTION_VZERO, .dirPort = D3_GPIO_Port, .dirPin = D3_Pin };
+
+  /* S4 : TIM16_CH1 -> TIM20 (16b) */
+  g_ax[AX_S4] = (axis_t){
+    .genTim = &htim16, .genChannel = TIM_CHANNEL_1, .genMOE = 1u,
+    .cntTim = &htim20, .cntChannel = TIM_CHANNEL_1, .width16 = 1u,
+    .vzero = MOTION_VZERO, .dirPort = D4_GPIO_Port, .dirPin = D4_Pin };
+
+  /* S5 : TIM17_CH1 -> TIM15 (16b) */
+  g_ax[AX_S5] = (axis_t){
+    .genTim = &htim17, .genChannel = TIM_CHANNEL_1, .genMOE = 1u,
+    .cntTim = &htim15, .cntChannel = TIM_CHANNEL_1, .width16 = 1u,
+    .vzero = MOTION_VZERO, .dirPort = D5_GPIO_Port, .dirPin = D5_Pin };
+
+  /* S6 : bit-bang GPIO PB5 / DIR PD6 */
+  g_ax[AX_S6] = (axis_t){
+    .isBitBang = 1u, .vzero = MOTION_VZERO,
+    .dirPort = D6_GPIO_Port, .dirPin = D6_Pin,
+    .stepPort = S6_GPIO_Port, .stepPin = S6_Pin };
+
+  /* S7 : bit-bang GPIO PB6 / DIR PD7 */
+  g_ax[AX_S7] = (axis_t){
+    .isBitBang = 1u, .vzero = MOTION_VZERO,
+    .dirPort = D7_GPIO_Port, .dirPin = D7_Pin,
+    .stepPort = S7_GPIO_Port, .stepPin = S7_Pin };
+}
+
+/* Prepare un compteur HW : reference vzero, IT update si 16 bits, demarrage. */
+static void counter_prepare(axis_t *a)
+{
+  /* Reference 0 : composite = 0x80000000. */
+  if (a->width16) {
+    a->cntTim->Instance->ARR = 0xFFFFu;
+    a->cntTim->Instance->CNT = 0x0000u;
+    a->cntHigh = (int32_t)MOTION_VZERO_HI16;
+  } else {
+    a->cntTim->Instance->ARR = 0xFFFFFFFFu;
+    a->cntTim->Instance->CNT = MOTION_VZERO;
+    a->cntHigh = 0;
+  }
+  a->cntTim->Instance->CR1 &= ~TIM_CR1_DIR;   /* up par defaut               */
+
+  /* OC desarme au depart. */
+  __HAL_TIM_DISABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+
+  /* Suivi overflow permanent pour les 16 bits. */
+  if (a->width16) {
+    __HAL_TIM_CLEAR_FLAG(a->cntTim, TIM_FLAG_UPDATE);
+    __HAL_TIM_ENABLE_IT(a->cntTim, TIM_IT_UPDATE);
+  }
+
+  /* Demarre le comptage (horloge externe = pulses du generateur). */
+  __HAL_TIM_ENABLE(a->cntTim);
+}
+
+/* ------------------------------------------------------------------------- */
+/*  API publique                                                             */
+/* ------------------------------------------------------------------------- */
+void Motion_Init(void)
+{
+  axes_config();
+
+  for (uint8_t i = 0; i < MOTION_NUM_HS_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    gen_stop(a);                 /* generateur a l'arret                     */
+    a->running = 0u;
+    a->ocArmed = 0u;
+    a->stepDir = 0;
+    counter_prepare(a);
+    a->target   = 0;
+    a->position = 0;
+  }
+
+  for (uint8_t i = MOTION_BB_FIRST; i < MOTION_NUM_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    a->target   = 0;
+    a->position = 0;
+    a->bbPhase  = 0u;
+    a->bbDir    = 0;
+    HAL_GPIO_WritePin(a->stepPort, a->stepPin, GPIO_PIN_RESET);
+  }
+
+  /* Tick bit-bang 200 kHz. */
+  HAL_TIM_Base_Start_IT(&htim6);
+}
+
+void Motion_SetTarget(uint8_t axis, int32_t steps)
+{
+  if (axis >= MOTION_NUM_AXES) { return; }
+  axis_t *a = &g_ax[axis];
+
+  if (a->target == steps) { return; }      /* pas de newTarget               */
+  a->target = steps;
+
+  if (a->isBitBang) { return; }            /* l'IT TIM6 fera le travail      */
+  on_new_target(a);
+}
+
+int32_t Motion_GetPosition(uint8_t axis)
+{
+  if (axis >= MOTION_NUM_AXES) { return 0; }
+  axis_t *a = &g_ax[axis];
+  if (a->isBitBang) { return a->position; }
+  return hw_composite(a);
+}
+
+int32_t Motion_GetTarget(uint8_t axis)
+{
+  if (axis >= MOTION_NUM_AXES) { return 0; }
+  return g_ax[axis].target;
+}
+
+void Motion_StopAll(void)
+{
+  for (uint8_t i = 0; i < MOTION_NUM_HS_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    gen_stop(a);
+    a->running = 0u;
+    oc_disarm(a);
+    a->target = hw_composite(a);           /* fige la cible sur la position  */
+  }
+  for (uint8_t i = MOTION_BB_FIRST; i < MOTION_NUM_AXES; i++) {
+    axis_t *a = &g_ax[i];
+    a->target = a->position;               /* gel bit-bang                   */
+  }
+}
+
+void Motion_ZeroHere(uint8_t axis)
+{
+  if (axis >= MOTION_NUM_AXES) { return; }
+  axis_t *a = &g_ax[axis];
+
+  if (a->isBitBang) {
+    a->position = 0;
+    a->target   = 0;
+    return;
+  }
+
+  /* Recale le compteur sur la reference 0. */
+  __HAL_TIM_DISABLE_IT(a->cntTim, cc_it_flag(a->cntChannel));
+  a->ocArmed = 0u;
+  if (a->width16) {
+    a->cntTim->Instance->CNT = 0x0000u;
+    a->cntHigh = (int32_t)MOTION_VZERO_HI16;
+  } else {
+    a->cntTim->Instance->CNT = MOTION_VZERO;
+    a->cntHigh = 0;
+  }
+  a->target  = 0;
+  a->stepDir = 0;
+}
