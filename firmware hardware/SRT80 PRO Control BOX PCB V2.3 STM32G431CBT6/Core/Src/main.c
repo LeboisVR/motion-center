@@ -613,7 +613,11 @@ static void actuatorConfigInit(void)
     const bool base = (i < 4U);          /* M1-M4 cables en dur */
     const uint16_t m  = nvmValid ? hwEepromReadU16(NVM_MAX[i])
                                  : (base ? 32767U : 0U);
-    const uint16_t mg = nvmValid ? hwEepromReadU16(NVM_MARGIN[i]) : 0U;
+    const uint16_t mgRaw = nvmValid ? hwEepromReadU16(NVM_MARGIN[i]) : 0U;
+    /* Garde margin : cellule NVM vierge/corrompue (0xFFFF) ou marge qui
+       consomme la course entiere (2*margin >= max) -> plage PosMap vide,
+       cible constante, verins figes malgre CALIBRATED. Neutralisee a 0. */
+    const uint16_t mg = ((uint32_t)mgRaw * 2UL >= (uint32_t)m) ? 0U : mgRaw;
     const bool     cn = nvmValid ? (hwEepromReadU16(NVM_CONN[i]) != 0U) : base;
     const bool     hd = nvmValid ? (hwEepromReadU16(NVM_HDIR[i]) == 1U) : false;
     const uint16_t ep = nvmValid ? hwEepromReadU16(NVM_EPARK[i]) : 0xFFFFU;

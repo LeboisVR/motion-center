@@ -597,7 +597,11 @@ static void actuatorConfigInit(void)
     const uint8_t i = (uint8_t)(4U + k);
     if (i >= NUM_MOTORS) break;
     const uint16_t m  = nvmValid ? hwEepromReadU16(maxAddr[k])    : 0U;
-    const uint16_t mg = nvmValid ? hwEepromReadU16(marginAddr[k]) : 0U;
+    const uint16_t mgRaw = nvmValid ? hwEepromReadU16(marginAddr[k]) : 0U;
+    /* Garde margin : cellule NVM vierge/corrompue (0xFFFF) ou marge qui
+       consomme la course entiere (2*margin >= max) -> plage PosMap vide,
+       cible constante, verins figes malgre CALIBRATED. Neutralisee a 0. */
+    const uint16_t mg = ((uint32_t)mgRaw * 2UL >= (uint32_t)m) ? 0U : mgRaw;
     /* Defaut AVR (Globals.cpp) : M5+ deconnectes tant que l'utilisateur
        ne les active pas dans Motion Center. */
     const bool     cn = nvmValid ? (hwEepromReadU16(connAddr[k]) != 0U) : false;

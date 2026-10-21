@@ -204,12 +204,20 @@ void loadCalibration(uint8_t motor) {
   };
 
   const uint8_t idx = motor - 1;
-  uint16_t maxVal          = hwEepromReadU16(maxAddr[idx]);
-  const uint16_t marginVal = hwEepromReadU16(marginAddr[idx]);
+  uint16_t maxVal    = hwEepromReadU16(maxAddr[idx]);
+  uint16_t marginVal = hwEepromReadU16(marginAddr[idx]);
 
   // Legacy 16-bit EEPROM (schema <= 2) : max M1..M4 pouvait valoir 65535.
   // Le bump de EEPROM_SCHEMA_VERSION force un factory reset, ceinture ici.
   if (idx < 4 && maxVal > POSMAP_INPUT_MAX) maxVal = POSMAP_INPUT_MAX;
+
+  // Garde margin : une cellule vierge/corrompue (0xFFFF) ou toute marge qui
+  // consomme la course entiere (2*margin >= max) rend la plage PosMap vide
+  // -> cible constante, verins figes alors que la box repond CALIBRATED.
+  if (marginVal != 0 && (uint32_t)marginVal * 2UL >= (uint32_t)maxVal) {
+    hwLog(F("Margin invalid (blank/corrupt EEPROM?) -> forced to 0"));
+    marginVal = 0;
+  }
 
   if (maxVal == 0) {
     hwLog(F("EEPROM invalid or max hasn't been calibrated yet (=0)"));

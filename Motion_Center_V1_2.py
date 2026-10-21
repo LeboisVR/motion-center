@@ -2584,6 +2584,14 @@ class App(tk.Tk):
             self._log("[TEST] Margin state -> " + " | ".join(details))
         else:
             self._log("[TEST] Margin state -> no optional motor connected")
+        bad = self._margin_incoherent_motors()
+        if bad:
+            names = ", ".join(f"M{m}" for m in bad)
+            self._log(f"[TEST] WARNING: invalid margin on {names}"
+                      " -> zero usable travel, the actuator(s) will NOT move even though the box reports CALIBRATED.")
+            self._log("[TEST] Hint: margin=65535 means blank/corrupted box memory."
+                      " Run 'Factory Reset' in the Status tab, power-cycle the box,"
+                      " then re-enable/recalibrate M5/M6 if used.")
 
     def _test_begin_streaming(self, source="CALIBRATED"):
         if not self._test_active:
@@ -6727,6 +6735,7 @@ class App(tk.Tk):
         self._pending_connect_firmware_check = False
         self._pending_disconnect = False
         self._last_synced_axis_count = 0
+        self._margin_warn_sig = ()
         self.w.disconnect()
         # Reset cached firmware info on disconnect
         self.info = {"firmware":"-", "box":"-", "servo":"-", "homing_sps":"-", "homing_step":"-", "mc_required":"", "estop_enabled": False, "estop_behavior": 0}
@@ -6975,6 +6984,40 @@ class App(tk.Tk):
         self.refresh_status()
         return False
 
+    def _margin_incoherent_motors(self):
+        """Motors whose reported margin leaves zero usable travel (2*margin >=
+        max, e.g. margin=65535 from blank/corrupted box memory): the mapped
+        range collapses and the actuator cannot move."""
+        bad = []
+        for motor in range(1, 8):
+            m = self.motors.get(motor, {})
+            if m.get("conn", "N") != "Y":
+                continue
+            try:
+                mx = int(m.get("max", 0) or 0)
+                mg = int(m.get("margin", 0) or 0)
+            except Exception:
+                continue
+            if mx > 0 and 2 * mg >= mx:
+                bad.append(motor)
+        return bad
+
+    def _check_margin_sanity(self):
+        """Log a warning when a STATUS reports an incoherent margin. Anti-spam:
+        only logs when the set of affected motors changes (reset on disconnect)."""
+        bad = self._margin_incoherent_motors()
+        sig = tuple(bad)
+        if sig == getattr(self, "_margin_warn_sig", ()):
+            return
+        self._margin_warn_sig = sig
+        if bad:
+            names = ", ".join(f"M{m}" for m in bad)
+            self._log(f"[WARN] Incoherent margin on {names} (margin >= max/2 -> zero usable travel):"
+                      " the actuator(s) will NOT move even though the box reports CALIBRATED.")
+            self._log("[WARN] margin=65535 means blank/corrupted box memory:"
+                      " run 'Factory Reset' (Status tab), power-cycle the box,"
+                      " then re-enable/recalibrate M5/M6 if used.")
+
     def _handle_status_line(self, s):
         """Parse a 'STATUS ...' reply and update UI state. Shared by _pump_rx
         and _send_cmd so a STATUS answering an in-flight GET is never lost."""
@@ -6991,6 +7034,7 @@ class App(tk.Tk):
                 self.info[key] = info[key]
         if not self._validate_connected_box_after_get(info):
             return
+        self._check_margin_sanity()
         self._render_status()
         self._auto_sync_simhub_axes()
         try:
