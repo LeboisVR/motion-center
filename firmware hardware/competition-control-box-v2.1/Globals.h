@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define FIRMWARE_VERSION "2.2.1"
+#define FIRMWARE_VERSION "2.2.2"
 #define MOTION_CENTER_MIN_VERSION "1.1"
 #ifndef BOX_VERSION
   #define BOX_VERSION 2

@@ -753,7 +753,7 @@ class App(tk.Tk):
                 "estop_behavior_disable_servo": "Disable servo",
                 "estop_behavior_return_park": "Return to park",
                 "estop_behavior_stop_here": "Stop here",
-                "motors": "Moteurs (☐/☑ = connecté, double-clic Max pour éditer ; Marge sur M5/M6)",
+                "motors": "Moteurs (☐/☑ = connecté, double-clic Max pour éditer ; Marge sur M5/M6, M1–M6 sur Pro V2.3/Box V3)",
                 "col_m": "M",
                 "col_conn": "Connecté",
                 "col_cal": "Calib",
@@ -1065,7 +1065,7 @@ class App(tk.Tk):
                 "estop_behavior_disable_servo": "Disable servo",
                 "estop_behavior_return_park": "Return to park",
                 "estop_behavior_stop_here": "Stop here",
-                "motors": "Motors (☐/☑ = connected, double-click Max to edit; Margin on M5/M6)",
+                "motors": "Motors (☐/☑ = connected, double-click Max to edit; Margin on M5/M6, M1–M6 on Pro V2.3/Box V3)",
                 "col_m": "M",
                 "col_conn": "Connected",
                 "col_cal": "Cal",
@@ -1381,7 +1381,7 @@ class App(tk.Tk):
             "speed_steps_s": "Geschwindigkeit (steps/s):",
             "apply": "Anwenden",
             "recommended": "Von 50 (langsam) bis 10000 (sehr schnell). Falls 10000 noch zu langsam ist, PN098 erhoehen.",
-            "motors": "Motoren (☐/☑ = verbunden, Doppelklick auf Max zum Bearbeiten; Reserve bei M5/M6)",
+            "motors": "Motoren (☐/☑ = verbunden, Doppelklick auf Max zum Bearbeiten; Reserve bei M5/M6, M1–M6 bei Pro V2.3/Box V3)",
             "estop_use": "ESTOP verwenden (fallende Flanke)",
             "estop_tip": "Wenn aktiviert, trennt eine fallende Flanke am ESTOP-Eingang die Motoren.",
             "estop_behavior": "ESTOP-Verhalten:",
@@ -6646,6 +6646,24 @@ class App(tk.Tk):
             return True
         return motor_1based >= 5
 
+    def _motor_margin_editable(self, motor_1based: int) -> bool:
+        """True when the margin of this motor can be edited on the current box.
+        M5+ : always (optional calibrated steppers on every box).
+        M1-M4 : only on boxes whose firmware accepts SET MARGIN on the base
+        axes — CCB V3 (BOX>=3, G474) and PRO V2.3 (BOX=4, FW >= 2.3, G431).
+        The PRO F103 boxes (BOX=4, FW 2.2.x) reply ERR ONLY_M5_M6 on M1-M4
+        (fixed virtual max, margin always 0)."""
+        if motor_1based >= 5:
+            return True
+        box = str(self.info.get("box", "") or "").strip().upper().lstrip("V")
+        if box == "4":
+            fw = str(self.info.get("firmware", "") or "")
+            m = re.search(r"(\d+)\.(\d+)", fw)
+            if not m:
+                return False
+            return (int(m.group(1)), int(m.group(2))) >= (2, 3)
+        return self._box_version() >= 3
+
     def _box_max_motor(self) -> int:
         """Return 5 for a Box V1, 6 for V2, 6 for a PRO Control Box F103 (BOX=4),
         and 7 otherwise (Competition Control Box V3 / STM32G474; older G474
@@ -7316,7 +7334,7 @@ class App(tk.Tk):
                 conn_txt = self._checkbox_symbol(m["conn"] == "Y")
                 cal_txt = "Y" if str(m.get("cal", "N")).upper() == "Y" else "N"
                 max_txt = str(m["max"]) if m["max"] else "-"
-                margin_display = m["margin"] if i >= 5 else "\u2014"
+                margin_display = m["margin"] if self._motor_margin_editable(i) else "\u2014"
                 _esp = self._motor_endstop_capable(i)
                 homing_dir_display = ("MAX" if m.get("homing_dir", "MIN") == "MAX" else "MIN") if _esp else "\u2014"
                 _ep = int(m.get("endpark", 255) or 255)
@@ -7412,7 +7430,7 @@ class App(tk.Tk):
             conn_on = (m["conn"] == "Y")
             conn_txt = self._checkbox_symbol(conn_on)
             cal_txt = "Y" if str(m.get("cal","N")).upper() == "Y" else "N"
-            margin_display = m["margin"] if i >= 5 else "—"
+            margin_display = m["margin"] if self._motor_margin_editable(i) else "—"
             _esp = self._motor_endstop_capable(i)
             homing_dir_display = ("MAX" if m.get("homing_dir", "MIN") == "MAX" else "MIN") if _esp else "—"
             _ep = int(m.get("endpark", 255) or 255)
@@ -7433,7 +7451,7 @@ class App(tk.Tk):
             return
         motor = int(row_id)
 
-        if col == "#5" and motor in (5, 6):
+        if col == "#5" and self._motor_margin_editable(motor):
             try:
                 if self._m5_margin_click_job is not None:
                     self.after_cancel(self._m5_margin_click_job)
@@ -7521,11 +7539,11 @@ class App(tk.Tk):
         if col not in ("#4", "#5"):
             return
 
-        if col == "#5" and motor <= 4:
-            self._log(f"[INFO] Margin is editable only on M5/M6 (requested M{motor}).")
-            return
-
-        if col == "#5" and motor in (5, 6):
+        if col == "#5":
+            if not self._motor_margin_editable(motor):
+                self._log(f"[INFO] Margin on M{motor} is not supported by this box "
+                          "(M5/M6 only on this firmware; M1-M4 need a PRO V2.3 or Box V3).")
+                return
             # Cancel delayed single-click open when this interaction is a true double-click.
             try:
                 if self._m5_margin_click_job is not None:

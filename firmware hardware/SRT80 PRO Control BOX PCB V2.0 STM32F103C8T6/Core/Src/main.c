@@ -832,7 +832,7 @@ static void sendStatusLine(void)
      Version et nombre d'axes proviennent de boxCfg (Actuator.h). */
   static char line[192];   /* statique : pile 1KB du F103 + coherence TX */
   int off = snprintf(line, sizeof(line),
-                     "STATUS FW=2.2.0 BOX=%u SERVO=%c",
+                     "STATUS FW=2.2.2 BOX=%u SERVO=%c",
                      (unsigned)boxCfg.version,
                      servoEnabled ? '1' : '0');
   if (off < 0) return;

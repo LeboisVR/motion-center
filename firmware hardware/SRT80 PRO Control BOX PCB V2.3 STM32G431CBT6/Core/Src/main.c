@@ -845,7 +845,7 @@ static void sendStatusLine(void)
 {
   static char line[192];
   int off = snprintf(line, sizeof(line),
-                     "STATUS FW=2.3.0 BOX=%u SERVO=%c",
+                     "STATUS FW=2.3.1 BOX=%u SERVO=%c",
                      (unsigned)boxCfg.version,
                      servoEnabled ? '1' : '0');
   if (off < 0) return;

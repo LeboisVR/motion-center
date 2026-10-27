@@ -1,6 +1,6 @@
 # Motion Center V1.2
 
-Application desktop pour configurer et piloter les Control Box Motion Center,
+L'application desktop pour configurer et piloter les Control Box développées par Lebois Racing,
 avec support des firmwares V1, V2, PRO STM32 et Competition Box STM32.
 
 ## Contenu

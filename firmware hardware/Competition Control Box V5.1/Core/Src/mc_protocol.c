@@ -24,7 +24,7 @@
 /*  Configuration produit                                                    */
 /* ------------------------------------------------------------------------- */
 /* L'app Motion Center exige REQUIRED_BOX_FIRMWARE_PREFIX = "2.2". */
-#define MC_FW_VERSION     "2.2.6"
+#define MC_FW_VERSION     "2.2.7"
 /* Numero de boitier rapporte dans STATUS (BOX=n). Version PRODUIT vue par
    l'utilisateur : V3 (le PCB V5.1 est une reference interne). */
 #define MC_BOX_VERSION    3
