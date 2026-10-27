@@ -607,6 +607,9 @@ class App(tk.Tk):
         self.hex_path = tk.StringVar()
         self.fw_choice = tk.StringVar()
         self._fw_box_filter = None      # selected control-box key in the Update tab image selector
+        # PRO V2 card covers two PCBs: V2.1 (STM32F103, serial IAP bootloader)
+        # and V2.3 (STM32G431, USB DFU). Sub-selector picks the actual PCB.
+        self._pro_v2_pcb = tk.StringVar(value="v21")
         self._fw_all_values = []
         self._fw_box_cards = {}
         self._fw_box_lbls = {}
@@ -850,6 +853,11 @@ class App(tk.Tk):
                 "box_card_comp_v3": "Competition V3 (7 vérins)",
                 "box_card_pro_v1": "PRO Control Box V1 (4 vérins)",
                 "box_card_pro_v2": "PRO Control Box V2 (6 vérins)",
+                "pro_v2_pcb_label": "Version du PCB :",
+                "pro_v2_pcb_v21": "PCB V2.1 (STM32F103)",
+                "pro_v2_pcb_v23": "PCB V2.3 (STM32G431)",
+                "stm32_v23_dfu_title": "PRO V2.3 — mise à jour par USB DFU",
+                "stm32_v23_dfu_msg": "Ce firmware est destiné à la PRO Control Box V2.3 (STM32G431).\n\nCette box ne se met pas à jour par le port série : elle bascule en mode USB DFU (périphérique « STM32 BOOTLOADER ») et se flashe avec STM32CubeProgrammer.\n\nFlash série annulé — il échouerait, et écrire ce firmware sur une box V2.1 (STM32F103) rendrait la box inutilisable.",
                 "fw_v15_warn_title": "⚠️ Firmware v1.5 — Attention",
                 "fw_v15_warn": "La v1.5 n'est pas compatible avec le Motion Center et nécessite l'ancien profil SimHub.\n\nIl est toujours possible de passer de la v1.5 à la v1.8 en utilisant le Motion Center.",
                 "compat_v18": "Compatibilité : SRT Control Box v1.8 uniquement",
@@ -1162,6 +1170,11 @@ class App(tk.Tk):
                 "box_card_comp_v3": "Competition V3 (7 actuators)",
                 "box_card_pro_v1": "PRO Control Box V1 (4 actuators)",
                 "box_card_pro_v2": "PRO Control Box V2 (6 actuators)",
+                "pro_v2_pcb_label": "PCB version:",
+                "pro_v2_pcb_v21": "PCB V2.1 (STM32F103)",
+                "pro_v2_pcb_v23": "PCB V2.3 (STM32G431)",
+                "stm32_v23_dfu_title": "PRO V2.3 — USB DFU update",
+                "stm32_v23_dfu_msg": "This firmware targets the PRO Control Box V2.3 (STM32G431).\n\nThat box is not updated over the serial port: it switches to USB DFU mode (\"STM32 BOOTLOADER\" device) and is flashed with STM32CubeProgrammer.\n\nSerial flash cancelled — it would fail, and writing this firmware to a V2.1 (STM32F103) box would render it unusable.",
                 "fw_v15_warn_title": "⚠️ Firmware v1.5 — Warning",
                 "fw_v15_warn": "v1.5 is not compatible with Motion Center and requires the old SimHub profile.\n\nYou can still upgrade from v1.5 to v1.8 using Motion Center.",
                 "compat_v18": "Compatibility: SRT Control Box v1.8 only",
@@ -1461,6 +1474,11 @@ class App(tk.Tk):
             "box_card_comp_v3": "Competition V3 (7 Aktoren)",
             "box_card_pro_v1": "PRO Control Box V1 (4 Aktoren)",
             "box_card_pro_v2": "PRO Control Box V2 (6 Aktoren)",
+            "pro_v2_pcb_label": "PCB-Version:",
+            "pro_v2_pcb_v21": "PCB V2.1 (STM32F103)",
+            "pro_v2_pcb_v23": "PCB V2.3 (STM32G431)",
+            "stm32_v23_dfu_title": "PRO V2.3 — USB-DFU-Update",
+            "stm32_v23_dfu_msg": "Diese Firmware ist für die PRO Control Box V2.3 (STM32G431) bestimmt.\n\nDiese Box wird nicht über den seriellen Port aktualisiert: Sie wechselt in den USB-DFU-Modus (\"STM32 BOOTLOADER\"-Gerät) und wird mit STM32CubeProgrammer geflasht.\n\nSerielles Flashen abgebrochen — es würde fehlschlagen, und das Schreiben dieser Firmware auf eine V2.1-Box (STM32F103) würde sie unbrauchbar machen.",
             "compat_v18": "Kompatibilität: nur SRT Control Box v1.8",
             "flash": "Flashen",
             "flash_note": "Beim Flashen werden die Einstellungen im Reiter Status nicht gelöscht. Zum Zurücksetzen der Box-Einstellungen verwende die Funktion \"Factory Reset\" im Reiter \"Status\".",
@@ -3435,6 +3453,10 @@ class App(tk.Tk):
             _lbl = self._fw_box_lbls.get(_key)
             if _lbl is not None:
                 _lbl.config(text=t.get(_tkey, _key))
+        if getattr(self, "lbl_pro_v2_pcb", None) is not None:
+            self.lbl_pro_v2_pcb.config(text=t.get("pro_v2_pcb_label", "PCB :"))
+            self.rb_pro_v2_pcb21.config(text=t.get("pro_v2_pcb_v21", "PCB V2.1 (STM32F103)"))
+            self.rb_pro_v2_pcb23.config(text=t.get("pro_v2_pcb_v23", "PCB V2.3 (STM32G431)"))
         self.lbl_hex.config(text=t["hex_file"])
         self.btn_browse_hex.config(text=t["browse"])
         self.btn_flash.config(text=t["flash"])
@@ -4159,6 +4181,10 @@ class App(tk.Tk):
         stem = os.path.splitext(name)[0]
         # STM32 firmware ships as a raw .bin (USB-CDC IAP bootloader)
         if name.lower().endswith(".bin"):
+            # PRO V2.3 (PCB V2.3, STM32G431) BEFORE the generic pro_v2 test:
+            # "pro-box-v2.3" would otherwise match the pro_v2 pattern.
+            if re.search(r"pro[-_]?box[-_]?v?2\.3|g431", stem, re.IGNORECASE):
+                return "pro_v23"
             if re.search(r"competition|g4|box[-_]?v?5", stem, re.IGNORECASE):
                 return "comp_v3"
             if re.search(r"pro[-_]?box[-_]?v?2", stem, re.IGNORECASE):
@@ -4258,6 +4284,35 @@ class App(tk.Tk):
                 w.bind("<Enter>", _on_enter)
                 w.bind("<Leave>", _on_leave)
 
+        # --- PRO V2 PCB sub-selector (hidden unless the PRO V2 card is chosen).
+        # The same enclosure exists with two PCBs that need different firmware
+        # files and update paths: V2.1 (STM32F103) and V2.3 (STM32G431).
+        self._pro_v2_sub_holder = ttk.Frame(parent)
+        self._pro_v2_sub_holder.pack(fill=tk.X)
+        self._pro_v2_sub = ttk.Frame(self._pro_v2_sub_holder)
+        self.lbl_pro_v2_pcb = ttk.Label(self._pro_v2_sub, text=t.get("pro_v2_pcb_label", "PCB :"))
+        self.lbl_pro_v2_pcb.pack(side=tk.LEFT, padx=(2, 8))
+        self.rb_pro_v2_pcb21 = ttk.Radiobutton(
+            self._pro_v2_sub, text=t.get("pro_v2_pcb_v21", "PCB V2.1 (STM32F103)"),
+            variable=self._pro_v2_pcb, value="v21",
+            command=lambda: self._apply_fw_box_filter(force_best=True))
+        self.rb_pro_v2_pcb21.pack(side=tk.LEFT, padx=(0, 12))
+        self.rb_pro_v2_pcb23 = ttk.Radiobutton(
+            self._pro_v2_sub, text=t.get("pro_v2_pcb_v23", "PCB V2.3 (STM32G431)"),
+            variable=self._pro_v2_pcb, value="v23",
+            command=lambda: self._apply_fw_box_filter(force_best=True))
+        self.rb_pro_v2_pcb23.pack(side=tk.LEFT)
+        self._update_pro_v2_sub_visibility()
+
+    def _update_pro_v2_sub_visibility(self):
+        sub = getattr(self, "_pro_v2_sub", None)
+        if sub is None:
+            return
+        if self._fw_box_filter == "pro_v2":
+            sub.pack(fill=tk.X, pady=(6, 0))
+        else:
+            sub.pack_forget()
+
     def _update_fw_box_card_highlight(self):
         bg_card = self._theme.get("surface", "#2A2E35")
         accent  = self._theme.get("accent",  "#F0C64A")
@@ -4268,6 +4323,7 @@ class App(tk.Tk):
         # Toggle: clicking the selected box again shows all firmwares
         self._fw_box_filter = None if self._fw_box_filter == key else key
         self._update_fw_box_card_highlight()
+        self._update_pro_v2_sub_visibility()
         self._apply_fw_box_filter(force_best=self._fw_box_filter is not None)
 
     @staticmethod
@@ -4288,13 +4344,22 @@ class App(tk.Tk):
             return box is None or box == key
         return (key in files) or (None in files)
 
+    def _effective_fw_box_key(self):
+        """Box key used to filter/resolve firmwares. The PRO V2 photo card
+        covers two PCBs: V2.1 (STM32F103) and V2.3 (STM32G431); the PCB
+        sub-selector decides which firmware family is shown/flashed."""
+        key = self._fw_box_filter
+        if key == "pro_v2" and self._pro_v2_pcb.get() == "v23":
+            return "pro_v23"
+        return key
+
     def _resolve_fw_path(self, label):
         """Chemin du fichier firmware pour le label (version) sélectionné,
         en tenant compte de la box choisie via les cartes-images."""
         files = getattr(self, "_fw_version_files", {}).get(label)
         if not files:
             return self._firmware_map.get(label, "")   # custom / v1.5 legacy
-        key = self._fw_box_filter
+        key = self._effective_fw_box_key()
         if key is not None and key in files:
             return files[key]
         if None in files:
@@ -4304,7 +4369,7 @@ class App(tk.Tk):
 
     def _filtered_fw_values(self):
         vals = list(self._fw_all_values or [])
-        key = self._fw_box_filter
+        key = self._effective_fw_box_key()
         if key is None:
             return vals
         return [v for v in vals if self._fw_label_matches_box(v, key)]
@@ -6171,6 +6236,18 @@ class App(tk.Tk):
         # an STM32 flash so a wrong selection is caught here, not mid-flash.
         # (Cross-target mistakes are non-destructive by design, but noisy.)
         if hex_file.lower().endswith(".bin"):
+            # PRO V2.3 (G431) has no serial IAP bootloader: its app lives at
+            # 0x08000000 and !DFU jumps to the ROM USB-DFU. Serial flash would
+            # fail after switching the box to DFU mode — and writing a G431
+            # image through the F103 IAP bootloader would corrupt a V2.1 box.
+            if self._fw_box_key(hex_file) == "pro_v23":
+                messagebox.showwarning(
+                    t.get("stm32_v23_dfu_title", "PRO V2.3 — USB DFU"),
+                    t.get("stm32_v23_dfu_msg",
+                          "PRO V2.3 (STM32G431) firmware is flashed over USB DFU "
+                          "with STM32CubeProgrammer, not over the serial port."),
+                )
+                return
             if not messagebox.askyesno(
                 t["stm32_confirm_title"],
                 t["stm32_confirm"].format(port=selected_port),
